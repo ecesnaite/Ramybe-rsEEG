@@ -21,7 +21,7 @@ X_spec = X_spec(F<=F_max,:);
 F = F(F<=F_max);
 varargout{1} = X_spec;
 varargout{2} = F;
-figure
+%figure
 hold on
 for n = 1:size(X_spec,2)
     command = [ 'disp(''x ' num2str(n) ''')' ];  
