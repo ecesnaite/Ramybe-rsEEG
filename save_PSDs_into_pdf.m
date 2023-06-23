@@ -6,16 +6,16 @@ addpath ..\toolboxes\eeglab_current\eeglab2022.0\ %path to the eeglab folder
 eeglab
 
 %data directory where .set files are located
-dataDir = dir(['..\Data\', '*.set']) % add path where the data lives
-fileName = 'raw_EEG_PSD.pdf' % pdf file name
+dataDir = dir(['C:\Users\ecesnait\Desktop\BUSCHLAB\Hormones\Data\AfterICA\', '*.set']) % add path where the data lives
+fileName = 'afterICA_PSD_ICLabel64.pdf' % pdf file name
 
 for f=1:length(dataDir)
 
     EEG = pop_loadset(fullfile(dataDir(f).folder, dataDir(f).name)) % load the data
-    [b1,a1] = butter(2,0.1/(EEG.srate/2), 'high');% high-pass filter at 0.1 Hz to remove the DC shifts 
-    EEG.data = filtfilt(b1,a1,double(EEG.data)');
+%     [b1,a1] = butter(2,0.1/(EEG.srate/2), 'high');% high-pass filter at 0.1 Hz to remove the DC shifts 
+%     EEG.data = filtfilt(b1,a1,double(EEG.data)');
 
-    plot_spec(EEG.data,EEG.srate, 45); title(EEG.setname);
+    figure, plot_spec(EEG.data',EEG.srate, 45); title(EEG.setname), ylim([-15, 25]);
     fig = gcf
     exportgraphics(fig, fileName,'Append',true)
     close(fig)
