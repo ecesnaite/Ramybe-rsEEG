@@ -15,7 +15,7 @@ for f=1:length(dataDir)
 %     [b1,a1] = butter(2,0.1/(EEG.srate/2), 'high');% high-pass filter at 0.1 Hz to remove the DC shifts 
 %     EEG.data = filtfilt(b1,a1,double(EEG.data)');
 
-    figure, plot_spec(EEG.data',EEG.srate, 45); title(EEG.setname), ylim([-15, 25]);
+    figure, plot_spec(EEG.data',EEG.srate, 45); title(EEG.setname),% ylim([-15, 25]);
     fig = gcf
     exportgraphics(fig, fileName,'Append',true)
     close(fig)
