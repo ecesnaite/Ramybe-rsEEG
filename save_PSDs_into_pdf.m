@@ -10,6 +10,7 @@ dataDir = dir(['C:\Users\ecesnait\Desktop\BUSCHLAB\Hormones\Data\AfterICA\', '*.
 fileName = 'afterICA_PSD_ICLabel64.pdf' % pdf file name
 
 for f=1:length(dataDir)
+for f=2:length(dataDir)
 
     EEG = pop_loadset(fullfile(dataDir(f).folder, dataDir(f).name)) % load the data
 %     [b1,a1] = butter(2,0.1/(EEG.srate/2), 'high');% high-pass filter at 0.1 Hz to remove the DC shifts 
