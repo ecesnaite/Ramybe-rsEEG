@@ -6,6 +6,11 @@ eeglab
 
 load('alpha_peaks_matchannel_locations_62.mat')
 data = readtable('C:\Users\ecesnait\Desktop\BUSCHLAB\Hormones\Data\iaf_power_ch_groups.xlsx','Sheet','power_each_ch_sbj_removed_subj')
+slope=readtable('slope_off_ch_groups.xlsx','Sheet','median_slope_groups')
+OC_slope = table2array(slope(1,2:end))
+IUD_slope = table2array(slope(2,2:end))
+NCF_slope = table2array(slope(3,2:end))
+NCL_slope = table2array(slope(4,2:end))
 
 %split into groups
 NCF = data(ismember(data.group, 'NCF'),:)
@@ -20,10 +25,10 @@ ap_OC = nanmedian(table2array(OC(:,3:end)))
 ap_IUD = nanmedian(table2array(IUD(:,3:end)))
 
 %Plot Figure
-input = ap_NCL
+input = NCF_slope
 figure;
 fig = topoplot(input, chan_loc, 'headrad', 'rim', 'whitebk','on')
-title(char(['AP in NCL']),'Interpreter', 'none')
+title(char(['slope in NCF']),'Interpreter', 'none')
 set(get(gca,'title'),'Position',[0 0.6 0.1])
 xlim auto
 ylim auto
@@ -32,7 +37,7 @@ colormap default
 h = colorbar('WestOutside');
 caxis([min(input), max(input)]);
 set(h, 'ylim', [min(input), max(input)]), %get min max values of the original scale by typing ylim
-set(get(h,'title'), 'String', 'uV')
+set(get(h,'title'), 'String', 'gamma')
 
 close all
 
