@@ -20,24 +20,22 @@ ap_OC = nanmedian(table2array(OC(:,3:end)))
 ap_IUD = nanmedian(table2array(IUD(:,3:end)))
 
 %Plot Figure
-input = ap_NCL
+input = ap_OC
 figure;
 fig = topoplot(input, chan_loc, 'headrad', 'rim', 'whitebk','on')
-title(char(['AP in NCL']),'Interpreter', 'none')
+title(char(['AP in OC']),'Interpreter', 'none')
 set(get(gca,'title'),'Position',[0 0.6 0.1])
 xlim auto
 ylim auto
 set(gcf,'color','w');
 colormap default
 h = colorbar('WestOutside');
-caxis([min(input), max(input)]);
-set(h, 'ylim', [min(input), max(input)]), %get min max values of the original scale by typing ylim
+caxis([min()]);
+set(h, 'ylim', [8 13]), %get min max values of the original scale by typing ylim
 set(get(h,'title'), 'String', 'uV')
 
 close all
 
-%check anova
-women_only = data(~ismember(data.group, 'M'),:)
-pow = nanmedian(table2array(women_only(:,3:end)),2)
-group = table2array(women_only(:,2))
- [p,tbl,stats] = anova1(log10(pow), group)
+saveDir = 'C:\Users\ecesnait\Desktop\BUSCHLAB\Hormones\Matlab_scripts\RestEEGhormones\figures\'
+
+export_fig([saveDir, 'IAF NCL'], '-r300', '-a2');
