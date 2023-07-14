@@ -29,19 +29,19 @@ axis_data = [0 26]
 axis_slope = [0.7 1.5]
 %Plot Figure
 
-input = ap_OC
+input = NCL_slope
 figure;
 fig = topoplot(input, chan_loc, 'headrad', 'rim', 'whitebk','on')
-title(char(['slope in OC']),'Interpreter', 'none')
+title(char(['NCL_slope']),'Interpreter', 'none')
 set(get(gca,'title'),'Position',[0 0.6 0.1])
 xlim auto
 ylim auto
 set(gcf,'color','w');
 colormap default
 h = colorbar('WestOutside');
-caxis([min(input), max(input)]);
-set(h, 'ylim', axis_data), %get min max values of the original scale by typing ylim
-set(get(h,'title'), 'String', 'uV')
+caxis(axis_slope);
+set(h, 'ylim', axis_slope), %get min max values of the original scale by typing ylim
+set(get(h,'title'), 'String', 'gamma')
 
 close all
 
