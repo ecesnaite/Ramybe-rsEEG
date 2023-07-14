@@ -6,6 +6,7 @@ eeglab
 
 load('alpha_peaks_matchannel_locations_62.mat')
 data = readtable('C:\Users\ecesnait\Desktop\BUSCHLAB\Hormones\Data\iaf_power_ch_groups.xlsx','Sheet','power_each_ch_sbj_removed_subj')
+
 slope=readtable('slope_off_ch_groups.xlsx','Sheet','median_slope_groups')
 OC_slope = table2array(slope(1,2:end))
 IUD_slope = table2array(slope(2,2:end))
@@ -24,11 +25,14 @@ ap_NCF = nanmedian(table2array(NCF(:,3:end)))
 ap_OC = nanmedian(table2array(OC(:,3:end)))
 ap_IUD = nanmedian(table2array(IUD(:,3:end)))
 
+axis_data = [0 26]
+axis_slope = [0.7 1.5]
 %Plot Figure
-input = NCF_slope
+
+input = ap_OC
 figure;
 fig = topoplot(input, chan_loc, 'headrad', 'rim', 'whitebk','on')
-title(char(['slope in NCF']),'Interpreter', 'none')
+title(char(['slope in OC']),'Interpreter', 'none')
 set(get(gca,'title'),'Position',[0 0.6 0.1])
 xlim auto
 ylim auto
@@ -36,8 +40,8 @@ set(gcf,'color','w');
 colormap default
 h = colorbar('WestOutside');
 caxis([min(input), max(input)]);
-set(h, 'ylim', [min(input), max(input)]), %get min max values of the original scale by typing ylim
-set(get(h,'title'), 'String', 'gamma')
+set(h, 'ylim', axis_data), %get min max values of the original scale by typing ylim
+set(get(h,'title'), 'String', 'uV')
 
 close all
 
