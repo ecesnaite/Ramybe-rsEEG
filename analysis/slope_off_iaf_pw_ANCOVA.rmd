@@ -11,6 +11,7 @@ library(ggpubr)
 library(rstatix)
 library(broom)
 library(readxl)
+library(onewaytests)
 ```
 
 
@@ -98,6 +99,13 @@ slope <- convert_and_reorder(slope)
 offset <- convert_and_reorder(offset)
 iaf <- convert_and_reorder(iaf)
 power <- convert_and_reorder(power)
+```
+
+
+```{r}
+# Log transformation of power
+power$log_median_power <- log(power$median_power)
+print(power)
 ```
 
 
@@ -410,6 +418,9 @@ NO significant difference between groups
 print(power %>% group_by(group) %>% get_summary_stats(median_power, type = "median_iqr"))
 ```
 
+```{r}
+print(power %>% group_by(group) %>% get_summary_stats(median_power, type = "mean_sd"))
+```
 
 **GRAPHS**
 
@@ -500,6 +511,124 @@ get_anova_table(power_res.aov)
 
 ```
 NO significant difference between groups
+
+
+# **LOG POWER**
+
+**PARAMETERS BETWEEN GROUPS: TABLE**
+```{r}
+print(power %>% group_by(group) %>% get_summary_stats(log_median_power, type = "median_iqr"))
+```
+
+```{r}
+print(power %>% group_by(group) %>% get_summary_stats(log_median_power, type = "mean_sd"))
+```
+
+HISTOGRAM
+
+```{r}
+ggplot(power %>% filter(group == 'NCF'), aes(x=median_power)) +
+  geom_histogram(position="identity") + labs(title = 'NCF')
+```
+**GRAPHS**
+
+```{r}
+bxp_log_power <-
+  ggboxplot(
+    power,
+    x = "group",
+    y = "log_median_power",
+    xlab = "Group",
+    ylab = "Log_power",
+    width = 0.5,
+    fill = "group") + scale_fill_manual(values = c("#FFCC33", "#CCFF66", "#FF99CC", "#9966CC")) + theme(legend.position = "none") + font("axis.title", size = 24) + 
+ font("xy.text", size = 18) + scale_x_discrete(labels = c("OC", "IUD", "NCF", "NCL")) + stat_summary(
+    fun.y = mean,
+    geom = "errorbar",
+    aes(
+      ymax = ..y..,
+      ymin = ..y..,
+      group = factor(group)
+    ),
+    width = 0.5,
+    linetype = "dashed",
+    position = position_dodge()
+  )
+
+bxp_log_power
+
+```
+
+##  **CHECK ASSUMPTIONS**
+
+1. **Linearity assumption**
+
+```{r}
+ggscatter(
+  power, x = "age", y = "log_median_power",
+  color = "group", add = "reg.line"
+  )+
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = group)
+    )
+```
+
+2. **Homogeneity of regression slopes**
+
+```{r}
+power %>% anova_test(log_median_power ~ group*age)
+```
+There was homogeneity of regression slopes as the interaction term was not statistically significant
+
+3. **Normality of residuals**
+```{r}
+# Fit the model, the covariate goes first
+model <- lm(log_median_power ~ age + group, data = power)
+# Inspect the model diagnostic metrics
+model.metrics <- augment(model) %>%
+  select(-.hat, -.sigma, -.fitted) # Remove details
+head(model.metrics, 3)
+```
+
+```{r}
+# Assess normality of residuals using shapiro wilk test
+shapiro_test(model.metrics$.resid)
+```
+The Shapiro Wilk test was significant (p < 0.002), so we can NOT assume normality of residuals
+
+4. **Homogeneity of variances**
+
+```{r}
+model.metrics %>% levene_test(.resid ~ group)
+```
+The Levene’s test was no significant (p < 0.05), so we can assume homogeneity of the residual variances for all groups.
+
+5. **Outliers**
+
+```{r}
+model.metrics %>% 
+  filter(abs(.std.resid) > 3) %>%
+  as.data.frame()
+```
+There were  outliers in the data, as assessed by cases with standardized residuals greater than 3 in absolute value.
+
+6.Brown-Forsythe test
+
+```{r}
+#perform Brown-Forsythe test
+bf.test(log_median_power ~ group, data = power)
+
+```
+
+## **ANCOVA**
+```{r}
+power_res.aov <- power %>% anova_test(log_median_power ~ age + group)
+get_anova_table(power_res.aov)
+
+```
+NO significant difference between groups
+
+
 
 
 
