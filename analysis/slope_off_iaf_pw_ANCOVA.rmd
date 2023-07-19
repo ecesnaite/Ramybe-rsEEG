@@ -126,7 +126,7 @@ bxp_slope <-
     x = "group",
     y = "median_slope",
     xlab = "Group",
-    ylab = "Slope",
+    ylab = "Slope (a.u./Hz)",
     width = 0.5,
     fill = "group") + scale_fill_manual(values = c("#FFCC33", "#CCFF66", "#FF99CC", "#9966CC")) + theme(legend.position = "none") + font("axis.title", size = 24) + 
  font("xy.text", size = 18) + scale_x_discrete(labels = c("OC", "IUD", "NCF", "NCL")) + stat_summary(
@@ -159,8 +159,23 @@ ggscatter(
   )+
   stat_regline_equation(
     aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = group)
-    )
+    ) +
+  labs(x = "Age (years)", y = "Median slope (a.u./Hz)")
+
 ```
+regression line without dividing into groups
+```{r}
+ggscatter(
+  slope, x = "age", y = "median_slope", add = "reg.line"
+  )+
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"))
+    ) +
+  labs(x = "Age (years)", y = "Median slope (a.u./Hz)") + font("axis.title", size = 20) +
+ font("xy.text", size = 15)
+
+```
+
 
 2. **Homogeneity of regression slopes**
 
@@ -209,6 +224,9 @@ get_anova_table(res.aov)
 ```
 NO significant difference between groups
 
+
+
+NO significant difference between groups
 
 # **OFFSET**
 
@@ -328,7 +346,7 @@ bxp_iaf <-
     x = "group",
     y = "median_iaf",
     xlab = "Group",
-    ylab = "IAF",
+    ylab = "IAF (Hz)",
     width = 0.5,
     fill = "group") + scale_fill_manual(values = c("#FFCC33", "#CCFF66", "#FF99CC", "#9966CC")) + theme(legend.position = "none") + font("axis.title", size = 24) + 
  font("xy.text", size = 18) + scale_x_discrete(labels = c("OC", "IUD", "NCF", "NCL")) + stat_summary(
@@ -431,7 +449,7 @@ bxp_power <-
     x = "group",
     y = "median_power",
     xlab = "Group",
-    ylab = "Power",
+    ylab = "log(power)",
     width = 0.5,
     fill = "group") + scale_fill_manual(values = c("#FFCC33", "#CCFF66", "#FF99CC", "#9966CC")) + theme(legend.position = "none") + font("axis.title", size = 24) + 
  font("xy.text", size = 18) + scale_x_discrete(labels = c("OC", "IUD", "NCF", "NCL")) + stat_summary(
