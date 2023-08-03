@@ -1,9 +1,9 @@
 % (C) Elena Cesnaite, email: e.cesnaite@gmail.com, page: https://www.researchgate.net/profile/Elena-Cesnaite
 
-% This code was created to analyze data described in a paper:'One-week escitalopram intake shifts excitation-inhibition balance
-% in healthy female brain: implications for individual cortical responsivity to SSRIs' by Zsido & Molloy et al.
+% This code was created to analyze data described in a paper:'Rhythms in the human 
+% body: the search for relationships between brain oscillations and fluctuations of sex hormones' by....
 % This code calculates alpha band parameters on detrended psd
-% Last updated 22.06.2021
+% Last updated 11.07.2023
 
 clear all, close all
 
