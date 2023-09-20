@@ -31,6 +31,14 @@ for subj = 1:length(dataDir)
     EEG = pop_reref(EEG, [])
 
      % --------------------------------------------------------------
+    % Save PSD.
+    % --------------------------------------------------------------
+    [spect, freq] = plot_spec(EEG.data',EEG.srate, 45);
+    psd.spect = spect;
+    psd.spect = freq;
+    save('exemplary_psd','psd')
+
+     % --------------------------------------------------------------
     % Save dataset.
     % --------------------------------------------------------------
     EEG = pop_saveset(EEG, 'filename', [dataDir(subj).name(1:end-8), 'clean'],'filepath',saveDir);
