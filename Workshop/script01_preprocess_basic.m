@@ -1,11 +1,11 @@
 clear all, close all
-addpath C:\Users\ecesnait\Desktop\BUSCHLAB\Hormones\Matlab_scripts\toolboxes\eeglab_current\eeglab2022.0\
+addpath /Users/ecesnaite/Desktop/BuschLab/EEGManyPipelines/Matlab/toolboxes/eeglab-develop/
 eeglab nogui
 
-dataDir = dir(['C:\Users\ecesnait\Desktop\BUSCHLAB\Hormones\Data\Raw\', '\*.set'])
-saveDir = 'C:\Users\ecesnait\Desktop\BUSCHLAB\Hormones\Data\BeforeICA\'
+dataDir = dir(['/Users/ecesnaite/Desktop/BuschLab/Ramybe-rsEEG/Workshop/data/', '*.set'])
+saveDir = '/Users/ecesnaite/Desktop/BuschLab/Ramybe-rsEEG/Workshop/data/BeforeICA/'
 
-for subj = 1
+for subj = 1%:length()
 
     % --------------------------------------------------------------
     % Load data.
@@ -15,7 +15,7 @@ for subj = 1
     % --------------------------------------------------------------
     % Downsample.
     % --------------------------------------------------------------
-    EEG = pop_resample(EEG, 250)
+    EEG = pop_resample(EEG, 256)
 
     % --------------------------------------------------------------
     % Recording length/number of markers/channel locations/ect.
