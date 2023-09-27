@@ -14,6 +14,10 @@ oc_psd = mean(pz_psd(contains({psd.ID}, 'OC'),:))
 
 freq = psd(1).freq
 
+psd_avg.spect = [ncf_psd; ncg_psd; uid_psd; oc_psd]
+psd_avg.freq = freq
+save('pz_psd_groups','psd')
+
 psd_group = table(ncf_psd', ncg_psd', uid_psd', oc_psd', freq)
 psd_group.Properties.VariableNames = {'ncf', 'ncg', 'uid', 'oc', 'freq'}
 

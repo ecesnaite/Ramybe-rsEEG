@@ -1,22 +1,35 @@
 rm(list = ls())
 
 myData <-read.csv("/Users/ecesnaite/Desktop/BuschLab/Ramybe-rsEEG/analysis/psd_group_pz.csv")
+aperiodicData <- read.csv("/Users/ecesnaite/Desktop/BuschLab/Ramybe-rsEEG/analysis/aperiodic_decay_group_plots.csv")
+
 library(ggplot2)
 library(tidyr)
 library(RColorBrewer)
 data_long = gather(myData[,c(1:4)], factor_key = T)
 data_long$y <- myData$freq
 
+apriodic_long <- gather(aperiodicData[,c(1:4)], factor_key = T)
+apriodic_long$freq <- aperiodicData$freq
+
+
 mycolors_all <- brewer.pal(n = 4, "Set3")
 mycolors_all <- mycolors_all[c(1,2,4,3)]
 
 tiff("/Users/ecesnaite/Desktop/BuschLab/Ramybe-rsEEG/figures/psd_all_avg.png", units="in", width=4, height=3, res=300)
 
-ggplot(data_long, aes(x=y, y= log(value), group=key)) +
-  geom_line(aes(color=key), size = 1)+ theme_classic() + 
+ ggplot(data_long, aes(x=y, y= log(value), group=key)) +
+  geom_line(aes(color=key), size = 1)+ 
+  geom_line(data = apriodic_long, aes(x=freq, y= value, group=key), size = .5, linetype = "dashed")+
+  theme_classic() + 
   scale_colour_manual(values=mycolors_all, labels = c("NCF", "NCG", "UID", "OC")) + 
   labs(x="Frequency (Hz)", y = "log Power", color = "Groups")+
   theme(axis.text=element_text(size=12), legend.text = element_text(size=12), legend.title = element_text(size=12))
+
+ggplot(apriodic_long, aes(x=freq, y= value, group=key)) +
+  geom_line(aes(color=key), size = .5, linetype = "dashed")+ 
+  scale_colour_manual(values=mycolors_all) + 
+  theme_classic() 
 
 dev.off()
 
