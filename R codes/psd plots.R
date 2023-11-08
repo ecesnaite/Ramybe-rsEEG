@@ -17,18 +17,19 @@ both_long <- rbind(apriodic_long,data_long)
 
 mycolors_all <- brewer.pal(n = 4, "Set3")
 mycolors_all <- mycolors_all[c(1,2,4,3)]
-mycolors_all <- c("#8DD3C7", "#FFFFB3", "#FB8072", "#BEBADA","#8DD3C7", "#FFFFB3", "#FB8072", "#BEBADA") #duplicate for two plots
+mycolors_all <- c("#009E73", "#E69F00", "#CC79A7", "#0072B2",
+                  "#009E73", "#E69F00", "#CC79A7", "#0072B2") #duplicate for two plots
 
 names(mycolors_all) <- c("NCF", "NCL", "IUD", "OC","ncf","ncg", "uid","oc") 
 
-tiff("/Users/ecesnaite/Desktop/BuschLab/Ramybe-rsEEG/figures/psd_all_avg.png", units="in", width=4.5, height=3, res=300)
+tiff("/Users/ecesnaite/Desktop/BuschLab/Ramybe-rsEEG/figures/psd_all_avg_nc.png", units="in", width=4.5, height=3, res=300)
 
   ggplot(both_long, aes(x=freq, y= log(value), group=key, linetype = group)) +
   geom_line(aes( color=key), size = 1)+ 
   theme_classic() + 
   scale_colour_manual(values=mycolors_all) + 
    scale_fill_manual( values = mycolors_all,limits = c("NCF", "NCL", "IUD", "OC"))+
-  labs(x="Frequency (Hz)", y = "log Power", color = "Groups",linetype=element_blank())+
+  labs(x="Frequency (Hz)", y = "log Power/Frequency", color = "Groups",linetype=element_blank())+
   theme(axis.text=element_text(size=12),axis.title=element_text(size=14),
         legend.text = element_text(size=12), legend.title = element_text(size=14))
  
