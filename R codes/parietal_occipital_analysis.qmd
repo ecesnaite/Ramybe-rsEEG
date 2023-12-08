@@ -1,0 +1,398 @@
+---
+title: "parietal_occipital_analysis"
+format: html
+editor: visual
+---
+
+## Data wrangling
+
+#### Packages
+
+```{r}
+#| message: false
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+library(broom)
+library(readxl)
+```
+
+#### Uploading the necessary data
+
+```{r}
+slope <-
+  read_xlsx("slope_off_ch_groups.xlsx", sheet = "slope_each_ch_sbj")
+
+iaf <-read_xlsx("iaf_power_ch_groups.xlsx", sheet = "iaf_each_ch_sbj_removed_subj" )
+
+power <-read_xlsx("iaf_power_ch_groups.xlsx", sheet = "power_each_ch_sbj_removed_subj" )
+
+demographic <-read_xlsx("id_age.xlsx")
+```
+
+#### Selecting electrodes
+
+```{r}
+slope <- slope |> select(id, group,Pz, P1, P2, PO3, POz, PO4, O1, Oz, O2)
+iaf <- iaf|> select(id, group, Pz, P1, P2, PO3, POz, PO4, O1, Oz, O2)
+power <- power |> select(id, group, Pz, P1, P2, PO3, POz, PO4, O1, Oz, O2)
+```
+
+#### Removing subjects
+
+```{r}
+#remove subjects
+
+# List of IDs to remove
+ids_to_remove <- c(236, 32, 107, 113, 221, 13, 118, 122)
+
+# Remove rows for the specified IDs in each dataset
+slope <- slope[!(slope$id %in% ids_to_remove) & !(slope$group == "M"), ]
+iaf <- iaf[!(iaf$id %in% ids_to_remove) & !(iaf$group == "M"), ]
+power <- power[!(power$id %in% ids_to_remove) & !(power$group == "M"), ]
+
+# Check if all datasets have equal number of rows
+num_rows <- nrow(slope)
+if (nrow(iaf) != num_rows || nrow(power) != num_rows) {
+  print("Warning: Datasets do not have an equal number of rows.")
+}
+```
+
+#### Calculating the average (mean) of occipital-parietal electrodes
+
+```{r}
+slope <- slope |> rowwise() |> 
+  mutate(Occ_pariet = mean(c_across(Pz:O2), na.rm = TRUE))
+
+iaf <- iaf |> rowwise() |> 
+  mutate(Occ_pariet = mean(c_across(Pz:O2), na.rm = TRUE))
+
+power <- power |> rowwise() |> 
+  mutate(Occ_pariet = mean(c_across(Pz:O2), na.rm = TRUE))
+```
+
+
+#### Combing demographic data 
+
+```{r}
+slope <- merge(slope, demographic, by = "id", all.x = TRUE)
+iaf <- merge(iaf, demographic, by = "id", all.x = TRUE)
+power <- merge(power, demographic, by = "id", all.x = TRUE)
+```
+
+#### Group order
+
+```{r}
+slope <- slope |> mutate(group = factor(group, levels = c("NCF", "NCL", "OC", "IUD")))
+iaf <- iaf|> mutate(group = factor(group, levels = c("NCF", "NCL", "OC", "IUD")))
+power <- power |>  mutate(group = factor(group, levels = c("NCF", "NCL", "OC", "IUD")))
+```
+
+
+## Data analysis
+
+### Slope
+
+### 1. Assumption testing
+
+**a. Quick visualization and outlines detection**
+
+```{r}
+ggplot(slope, aes(group, Occ_pariet))+
+  geom_boxplot()
+```
+
+```{r}
+slope |>  
+  group_by(group) |> 
+  identify_outliers(Occ_pariet)
+```
+
+No outliers in variable
+
+**b. Linearity assumption**
+
+```{r}
+#| warning: false
+ggscatter(
+  slope, x = "age", y = "Occ_pariet",
+  color = "group", add = "reg.line"
+  ) +
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = group)
+    )
+```
+
+**c. Homogeneity of regression slopes**
+
+```{r}
+slope |>  anova_test(Occ_pariet ~ group*age)
+```
+
+There is no significant interaction between age and group
+
+**d. Normality testing (residuals)**
+
+```{r}
+model_slope <- lm(Occ_pariet ~ group + age, data = slope)
+```
+
+```{r}
+plot(model_slope,2)
+```
+
+```{r}
+shapiro_test(residuals(model_slope))
+```
+
+The data is normally distributed
+
+**d. Homogeneity of variance**
+
+```{r}
+slope |> levene_test(Occ_pariet ~ group)
+```
+
+Variance is equall in the groups.
+
+###  2. Running ANOVA
+
+```{r}
+slope_aov <- slope |> anova_test(Occ_pariet ~ group + age)
+
+slope_aov
+```
+
+No significant difference between groups
+
+### 3. Vizualization
+
+```{r}
+slopeOcc_pr <- ggplot(slope,aes(x = group, y = Occ_pariet, fill = group)) +
+  geom_violin(width = 1) +
+  geom_boxplot(width = 0.1, color = "black", alpha = 0.2) +
+  geom_jitter(width = 0.2, height = 0, alpha = 0.5, color = "black") +
+  labs(x = " ") +
+  ylab("1/f Slope (γ)") +
+  scale_fill_manual(values = c("#009E73","#E69F00", "#0072B2", "#CC79A7"))+
+  theme_classic() +
+  theme(axis.text = element_text(size = 14), legend.position = "none") +
+  font("axis.title", size = 18)+
+  ylim(c(0.5, 1.8))
+slopeOcc_pr
+```
+
+### IAF
+### 1. Assumption testing
+**a. Quick visualization and outlines detection**
+
+```{r}
+ggplot(iaf, aes(group, Occ_pariet))+
+  geom_boxplot()
+```
+
+```{r}
+iaf |>  
+  group_by(group) |> 
+  identify_outliers(Occ_pariet) |> 
+  select(is.extreme)
+```
+
+No extreme outliers
+
+**b. Linearity assumption**
+
+```{r}
+#| warning: false
+ggscatter(
+  iaf, x = "age", y = "Occ_pariet",
+  color = "group", add = "reg.line"
+  ) +
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = group)
+    )
+```
+
+**c. Homogeneity of regression slopes**
+
+```{r}
+iaf %>% anova_test(Occ_pariet ~ group*age)
+```
+
+There is no significant interaction between age and group. And no relationship between age and iaf, therefore we can run simpe ANOVA
+
+**d. Normality testing (residuals)**
+
+```{r}
+model_iaf <- lm(Occ_pariet ~ group, data = iaf)
+```
+
+```{r}
+plot(model_iaf,2)
+```
+
+```{r}
+shapiro_test(residuals(model_iaf))
+```
+```{r}
+iaf |> 
+  group_by(group) |> 
+  shapiro_test(Occ_pariet)
+```
+
+The data is normally distributed
+
+**d. Homogeneity of variance**
+
+```{r}
+iaf |> levene_test(Occ_pariet ~ group)
+```
+
+Variance is equall in the groups.
+
+###  2. Running ANOVA
+
+```{r}
+iaf_aov <- iaf |> anova_test(Occ_pariet ~ group)
+
+iaf_aov
+```
+
+No significant difference between groups
+
+### 3. Vizualization
+
+```{r}
+iaf_Occ_pr <- ggplot(iaf,aes(x = group, y = Occ_pariet, fill = group)) +
+  geom_violin(width = 1) +
+  geom_boxplot(width = 0.1, color = "black", alpha = 0.2) +
+  geom_jitter(width = 0.2, height = 0, alpha = 0.5, color = "black") +
+  labs(x = " ") +
+  ylab("IAF (Hz)") +
+  scale_fill_manual(values = c("#009E73","#E69F00", "#0072B2", "#CC79A7"))+
+  theme_classic() +
+  theme(axis.text = element_text(size = 14), legend.position = "none") +
+  font("axis.title", size = 18)
+iaf_Occ_pr
+```
+
+### Alpa Power
+
+```{r}
+power$power_log <- log(power$Occ_pariet)
+```
+
+### 1. Assumption testing
+
+**a. Quick visualization and outlines detection**
+
+```{r}
+ggplot(power, aes(group, power_log))+
+  geom_boxplot()
+```
+
+```{r}
+power |>  
+  group_by(group) |> 
+  identify_outliers(power_log) |> 
+  select(is.extreme)
+```
+
+No outliers in variable
+
+**b. Linearity assumption**
+
+```{r}
+#| warning: false
+ggscatter(
+  power, x = "age", y = "power_log",
+  color = "group", add = "reg.line"
+  ) +
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = group)
+    )
+```
+
+**c. Homogeneity of regression slopes**
+
+```{r}
+power %>% anova_test(power_log ~ group*age)
+```
+
+There is no significant interaction between age and group
+
+**d. Normality testing (residuals)**
+
+```{r}
+model_power <- lm(power_log ~ group, data = power)
+```
+
+```{r}
+plot(model_power,2)
+```
+
+```{r}
+shapiro_test(residuals(model_power))
+```
+```{r}
+power |> 
+  group_by(group) |> 
+  shapiro_test(power_log)
+```
+```{r}
+
+```
+
+
+
+The data is normally distributed
+
+**d. Homogeneity of variance**
+
+```{r}
+power |> levene_test(power_log ~ group)
+```
+
+Variance is equall in the groups.
+
+###  2. Running ANOVA
+
+```{r}
+power_aov <- power |> anova_test(power_log ~ group + age)
+
+power_aov
+```
+
+No significant difference between groups
+
+```{r}
+power_graphic <- ggplot(power, aes(x = group, y = power_log, fill = group)) +
+  geom_violin(width = 1) +
+  geom_boxplot(width = 0.1, color = "black", alpha = 0.2) +
+  geom_jitter(width = 0.2, height = 0, alpha = 0.5, color = "black") +
+  labs(x = "") +
+  ylab("log Alpha Power (µV2)") +
+  scale_fill_manual(values = c("#009E73","#E69F00", "#0072B2", "#CC79A7"))+
+  theme_classic() +
+  theme(axis.text = element_text(size = 14), legend.position = "none") +
+  font("axis.title", size = 18)
+power_graphic 
+
+```
+
+
+```{r}
+library(patchwork)
+```
+
+
+```{r}
+graphics <- slopeOcc_pr /
+iaf_Occ_pr / 
+power_graphic
+```
+
+```{r}
+ggsave("graphics.png", width = 6, height = 8)
+```
+
