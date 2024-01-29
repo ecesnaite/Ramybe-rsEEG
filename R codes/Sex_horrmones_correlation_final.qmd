@@ -1,0 +1,119 @@
+---
+title: "Correlations_groups"
+format: html
+editor: visual
+---
+
+Loading packages
+
+```{r}
+#| message: false
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+library(broom)
+library(readxl)
+library(corrr)
+library(corrplot)
+library(PerformanceAnalytics)
+```
+
+**Uploading data**
+
+```{r}
+slope <-  
+   read_xlsx("", sheet = "")
+
+iaf <-read_xlsx("", sheet = "" )
+
+power <-read_xlsx("", sheet = "" )
+
+demographic <-read_xlsx("")
+```
+
+**Removing subjects**
+
+```{r}
+#remove subjects
+
+# List of IDs to remove
+ids_to_remove <- c(236, 32, 107, 113, 221, 13, 118, 122)
+
+# Remove rows for the specified IDs in each dataset
+slope <- slope[!(slope$id %in% ids_to_remove) & !(slope$group == "M"), ]
+iaf <- iaf[!(iaf$id %in% ids_to_remove) & !(iaf$group == "M"), ]
+power <- power[!(power$id %in% ids_to_remove) & !(power$group == "M"), ]
+
+# Check if all datasets have equal number of rows
+num_rows <- nrow(slope)
+if (nrow(iaf) != num_rows || nrow(power) != num_rows) {
+  print("Warning: Datasets do not have an equal number of rows.")
+}
+
+```
+
+**Merge data sets**
+
+```{r}
+
+Joint_df <- demographic |>  
+  inner_join(iaf, by = c("id" = "id")) |> 
+  inner_join(power, by = c("id" = "id", "group" = "group")) |> 
+  inner_join(slope, by = c("id" = "id", "group" = "group")) |> 
+  relocate(group, .before = age) |> 
+  mutate(log_power         = log(median_power),
+          log_progesterone = log(Progesterone)
+  )|>
+  relocate(log_power, .before = median_power) |>
+  relocate(log_progesterone, .before = Progesterone)
+```
+
+## Linear regression
+
+```{r}
+outlier_detection <- function(corr_data, alpha = 0.001) {
+  cov_matrix <- cov(corr_data)
+  mahalanobis_dist <- mahalanobis(corr_data, colMeans(corr_data), cov_matrix)
+  critical_value <- qchisq(1 - alpha, df = ncol(corr_data))
+  outliers <- which(mahalanobis_dist > critical_value)
+  return(list(outliers = outliers, coordinates = corr_data[outliers, ]))
+}
+```
+
+```{r}
+outlier_result <- outlier_detection(corr_data[, c("median_slope", "median_iaf", "log_power", "Estradiol", "log_progesterone", "Testosterone")])
+outlier_indices <- outlier_result$outliers
+outlier_coordinates <- outlier_result$coordinates
+
+# Plotting scatter plots with outliers marked in red
+par(mfrow = c(2, 3)) # To arrange plots in a 2x3 grid, change the numbers accordingly
+for (col_name in c("median_slope", "median_iaf", "log_power", "Estradiol", "log_progesterone", "Testosterone")) {
+  plot(corr_data[[col_name]], col = ifelse(seq_along(corr_data[[col_name]]) %in% outlier_indices, "red", "blue"), pch = 16, main = col_name)
+}
+```
+
+No outliers detected
+
+**Dummie**
+
+```{r}
+data_dummies <- cbind(Joint_df, model.matrix(~ group - 1, Joint_df))
+```
+
+**Simple linear regression models**
+
+```{r}
+model_IAF <- lm(median_iaf ~ log_progesterone + Estradiol + Testosterone + groupIUD + groupOC+groupNCL + groupNCF, data = data_dummies)
+summary(model_IAF)
+
+```
+
+```{r}
+model_power <- lm(log_power ~ log_progesterone + Estradiol + Testosterone + groupIUD + groupOC+groupNCL + groupNCF, data = data_dummies)
+summary(model_power)
+```
+
+```{r}
+model_slope <- lm(median_slope ~ log_progesterone + Estradiol + Testosterone + groupIUD + groupOC+groupNCL + groupNCF, data = data_dummies)
+summary(model_slope)
+```
