@@ -33,9 +33,9 @@ demographic <-read_xlsx("id_age.xlsx")
 #### Selecting electrodes
 
 ```{r}
-slope <- slope |> select(id, group,Pz, P1, P2, PO3, POz, PO4, O1, Oz, O2)
-iaf <- iaf|> select(id, group, Pz, P1, P2, PO3, POz, PO4, O1, Oz, O2)
-power <- power |> select(id, group, Pz, P1, P2, PO3, POz, PO4, O1, Oz, O2)
+slope <- slope |> select(id, group,Pz, P2, POz, PO4)
+iaf <- iaf|> select(id, group,Pz, P2, POz, PO4)
+power <- power |> select(id, group,Pz, P2, POz, PO4)
 ```
 
 #### Removing subjects
