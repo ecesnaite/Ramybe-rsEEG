@@ -1,0 +1,1089 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+library(broom)
+library(readxl)
+library(emmeans)
+```
+
+
+One-way ANCOVA with age as covariate
+
+
+
+```{r}
+# Load data
+# Add paths to the corresponding files
+iaf <-
+  read_xlsx("")
+
+alpha_broadpow <-
+  read_xlsx("")
+
+alpha1 <-
+  read_xlsx("") 
+
+alpha2 <-
+  read_xlsx("")
+
+width <-
+  read_xlsx("")
+
+age <-read_xlsx("")
+
+detrended_power <- read_xlsx("")
+
+```
+
+
+
+```{r}
+
+# Merge parameter dataframes with 'age' based on 'id'
+
+iaf <- merge(iaf, age, by = "id", all.x = TRUE)
+
+alpha_broadpow <- merge(alpha_broadpow, age, by = "id", all.x = TRUE)
+
+alpha1 <- merge(alpha1, age, by = "id", all.x = TRUE)
+
+alpha2 <- merge(alpha2, age, by = "id", all.x = TRUE)
+
+width <- merge(width, age, by = "id", all.x = TRUE)
+
+```
+
+**REMOVED SUBJECTS:**
+
+NCF_236, OC_32.set, UID_107.set, UID_113.set
+
+Subjects with more than 31 NaN IAF values:
+Subject ID: 221, NaN count: 45
+Subject ID: 13, NaN count: 59
+Subject ID: 118, NaN count: 60
+Subject ID: 122, NaN count: 53
+--> same subjects as with detrended data
+
+```{r}
+# Remove subjects
+
+# List of IDs to remove
+ids_to_remove <- c(236, 32, 107, 113, 221, 13, 118, 122) 
+
+# Remove male subjects
+iaf <- iaf[!(iaf$id %in% ids_to_remove) & !(iaf$group == "M"), ]
+alpha_broadpow <- alpha_broadpow[!(alpha_broadpow$id %in% ids_to_remove) & !(alpha_broadpow$group == "M"), ]
+alpha1 <- alpha1[!(alpha1$id %in% ids_to_remove) & !(alpha1$group == "M"), ]
+alpha2 <- alpha2[!(alpha2$id %in% ids_to_remove) & !(alpha2$group == "M"), ]
+width <- width[!(width$id %in% ids_to_remove) & !(width$group == "M"), ]
+detrended_power <- detrended_power[!(detrended_power$id %in% ids_to_remove) & !(detrended_power$group == "M"), ]
+
+# Check if all datasets have equal number of rows
+num_rows <- nrow(iaf)
+if (nrow(alpha_broadpow) != num_rows || nrow(alpha1) != num_rows || nrow(alpha2) != num_rows || nrow(width) != num_rows) {
+  print("Warning: Datasets do not have an equal number of rows.")
+}
+
+```
+
+
+
+```{r}
+# Define the order of levels
+desired_order <- c("OC", "IUD", "NCF", "NCL")
+
+# Function to convert group names to factors and reorder levels
+convert_and_reorder <- function(df) {
+  df$group <- factor(df$group, levels = desired_order)
+  return(df)
+}
+
+# Apply the conversion and reordering to all datasets
+iaf <- convert_and_reorder(iaf)
+alpha_broadpow <- convert_and_reorder(alpha_broadpow)
+alpha1 <- convert_and_reorder(alpha1)
+alpha2 <- convert_and_reorder(alpha2)
+width <- convert_and_reorder(width)
+detrended_power <- convert_and_reorder(detrended_power)
+```
+
+
+```{r}
+# Log transformation of power
+alpha_broadpow$log_power <- log(alpha_broadpow$broadpow_Pz)
+alpha1$log_lowerpow <- log(alpha1$lowerpow_Pz)
+alpha2$log_upperpow <- log(alpha2$upperpow_Pz)
+detrended_power$log_detr_power <- log(detrended_power$Pz)
+```
+
+
+# **IAF**
+
+**IAF BETWEEN GROUPS: TABLE**
+```{r}
+print(iaf %>% group_by(group) %>% get_summary_stats(iaf_Pz, type = "median_iqr"))
+```
+
+AVERAGE:
+```{r}
+print(iaf %>% group_by(group) %>% get_summary_stats(iaf_Pz, type = "mean_sd"))
+```
+
+**VIZUALIZATIONS**
+
+dashed line - mean
+
+```{r}
+bxp_iaf <-
+  ggboxplot(
+    iaf,
+    x = "group",
+    y = "iaf_Pz",
+    xlab = "Group",
+    ylab = "IAF",
+    width = 0.5,
+    fill = "group") + scale_fill_manual(values = c("#FFCC33", "#CCFF66", "#FF99CC", "#9966CC")) + theme(legend.position = "none") + font("axis.title", size = 24) + 
+ font("xy.text", size = 18) + scale_x_discrete(labels = c("OC", "IUD", "NCF", "NCL")) + stat_summary(
+    fun.y = mean,
+    geom = "errorbar",
+    aes(
+      ymax = ..y..,
+      ymin = ..y..,
+      group = factor(group)
+    ),
+    width = 0.5,
+    linetype = "dashed",
+    position = position_dodge()
+  )
+
+bxp_iaf
+
+```
+
+
+
+```{r}
+bxp_scatter_iaf <- ggboxplot(
+  iaf,
+  x = "group",
+  y = "iaf_Pz",
+  xlab = "Group",
+  ylab = "IAF",
+  width = 0.5,
+  fill = "group"
+) +
+  scale_fill_manual(values = c("#FFCC33", "#CCFF66", "#FF99CC", "#9966CC")) +
+  theme(legend.position = "none") +
+  font("axis.title", size = 24) +
+  font("xy.text", size = 18) +
+  scale_x_discrete(labels = c("OC", "IUD", "NCF", "NCL")) +
+  stat_summary(
+    fun.y = mean,
+    geom = "errorbar",
+    aes(
+      ymax = ..y..,
+      ymin = ..y..,
+      group = factor(group)
+    ),
+    width = 0.5,
+    linetype = "dashed",
+    position = position_dodge()
+  ) +
+  geom_point(
+    aes(
+      x = group,
+      y = iaf_Pz
+    ),
+    position = position_dodge(width = 0.5), 
+    size = 1, 
+    color = "black" 
+  )
+
+bxp_scatter_iaf
+
+```
+
+
+
+
+##  **CHECKING ASSUMPTIONS**
+
+1. **Linearity assumption**
+
+```{r}
+ggscatter(
+  iaf, x = "age", y = "iaf_Pz",
+  color = "group", add = "reg.line"
+  )+
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = group)
+    )
+```
+
+2. **Homogeneity of regression slopes**
+
+```{r}
+iaf %>% anova_test(iaf_Pz ~ group*age)
+```
+
+
+3. **Normality of residuals**
+```{r}
+# Fit the model
+model <- lm(iaf_Pz ~ age + group, data = iaf)
+# Inspect the model diagnostic metrics
+model.metrics <- augment(model) %>%
+  select(-.hat, -.sigma, -.fitted) 
+head(model.metrics, 3)
+```
+
+```{r}
+# Assess normality of residuals (shapiro wilk test)
+shapiro_test(model.metrics$.resid)
+```
+
+
+4. **Homogeneity of variances**
+
+```{r}
+model.metrics %>% levene_test(.resid ~ group)
+```
+
+
+5. **Outliers**
+
+```{r}
+model.metrics %>% 
+  filter(abs(.std.resid) > 3) %>%
+  as.data.frame()
+```
+
+
+## **ANCOVA**
+```{r}
+res.aov <- iaf %>% anova_test(iaf_Pz ~ age + group)
+get_anova_table(res.aov)
+```
+
+
+# **ALPHA POWER**
+
+**ALPHA BROADPOWER BETWEEN GROUPS: TABLE**
+```{r}
+print(alpha_broadpow %>% group_by(group) %>% get_summary_stats(broadpow_Pz, type = "median_iqr"))
+```
+
+```{r}
+print(alpha_broadpow %>% group_by(group) %>% get_summary_stats(broadpow_Pz, type = "mean_sd"))
+```
+
+
+```{r}
+print(alpha_broadpow %>% group_by(group) %>% get_summary_stats(log_power, type = "mean_sd"))
+```
+
+**DETRENDED ALPHA POWER (Pz electrode)**
+
+```{r}
+print(detrended_power %>% group_by(group) %>% get_summary_stats(Pz, type = "median_iqr"))
+
+```
+
+
+```{r}
+print(detrended_power %>% group_by(group) %>% get_summary_stats(Pz, type = "mean_sd"))
+```
+
+```{r}
+print(detrended_power %>% group_by(group) %>% get_summary_stats(log_detr_power, type = "mean_sd"))
+```
+
+
+**VIZUALIZATIONS**
+
+```{r}
+bxp_alphapow <-
+  ggboxplot(
+    alpha_broadpow,
+    x = "group",
+    y = "broadpow_Pz",
+    xlab = "Group",
+    ylab = "Alpha power (Pz)",
+    width = 0.5,
+    fill = "group") + scale_fill_manual(values = c("#FFCC33", "#CCFF66", "#FF99CC", "#9966CC")) + theme(legend.position = "none") + font("axis.title", size = 24) + 
+ font("xy.text", size = 18) + scale_x_discrete(labels = c("OC", "IUD", "NCF", "NCL")) + stat_summary(
+    fun.y = mean,
+    geom = "errorbar",
+    aes(
+      ymax = ..y..,
+      ymin = ..y..,
+      group = factor(group)
+    ),
+    width = 0.5,
+    linetype = "dashed",
+    position = position_dodge()
+  )
+
+bxp_alphapow
+```
+
+
+```{r}
+bxp_log_alpha_pz <-
+  ggboxplot(
+    alpha_broadpow,
+    x = "group",
+    y = "log_power",
+    xlab = "Group",
+    ylab = "Log alpha power (Pz)",
+    width = 0.5,
+    fill = "group") + scale_fill_manual(values = c("#FFCC33", "#CCFF66", "#FF99CC", "#9966CC")) + theme(legend.position = "none") + font("axis.title", size = 24) + 
+ font("xy.text", size = 18) + scale_x_discrete(labels = c("OC", "IUD", "NCF", "NCL")) + stat_summary(
+    fun.y = mean,
+    geom = "errorbar",
+    aes(
+      ymax = ..y..,
+      ymin = ..y..,
+      group = factor(group)
+    ),
+    width = 0.5,
+    linetype = "dashed",
+    position = position_dodge()
+  )
+
+bxp_log_alpha_pz
+```
+
+```{r}
+print(alpha_broadpow %>% group_by(group) %>% get_summary_stats(log_power, type = "mean_sd"))
+```
+
+**VIZUALIZATIONS**
+**DETRENDED ALPHA POWER**
+```{r}
+bxp_detrended <-
+  ggboxplot(
+    detrended_power,
+    x = "group",
+    y = "Pz",
+    xlab = "Group",
+    ylab = "(Detrended) \n Alpha power (Pz)",
+    width = 0.5,
+    fill = "group") + scale_fill_manual(values = c("#FFCC33", "#CCFF66", "#FF99CC", "#9966CC")) + theme(legend.position = "none") + font("axis.title", size = 24) + 
+ font("xy.text", size = 18) + scale_x_discrete(labels = c("OC", "IUD", "NCF", "NCL")) + stat_summary(
+    fun.y = mean,
+    geom = "errorbar",
+    aes(
+      ymax = ..y..,
+      ymin = ..y..,
+      group = factor(group)
+    ),
+    width = 0.5,
+    linetype = "dashed",
+    position = position_dodge()
+  )
+
+bxp_detrended 
+
+```
+
+```{r}
+bxp_detrended_pz <-
+  ggboxplot(
+    detrended_power,
+    x = "group",
+    y = "log_detr_power",
+    xlab = "Group",
+    ylab = "log(detrended power) Pz",
+    width = 0.5,
+    fill = "group") + scale_fill_manual(values = c("#FFCC33", "#CCFF66", "#FF99CC", "#9966CC")) + theme(legend.position = "none") + font("axis.title", size = 24) + 
+ font("xy.text", size = 18) + scale_x_discrete(labels = c("OC", "IUD", "NCF", "NCL")) + stat_summary(
+    fun.y = mean,
+    geom = "errorbar",
+    aes(
+      ymax = ..y..,
+      ymin = ..y..,
+      group = factor(group)
+    ),
+    width = 0.5,
+    linetype = "dashed",
+    position = position_dodge()
+  )
+
+bxp_detrended_pz
+
+```
+
+##  **CHECK ASSUMPTIONS**
+
+1. **Linearity assumption**
+
+```{r}
+ggscatter(
+  alpha_broadpow, x = "age", y = "broadpow_Pz",
+  color = "group", add = "reg.line"
+  )+
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = group)
+    )
+```
+
+2. **Homogeneity of regression slopes**
+
+```{r}
+alpha_broadpow %>% anova_test(broadpow_Pz ~ group*age)
+```
+
+
+3. **Normality of residuals**
+```{r}
+# Fit the model
+model <- lm(broadpow_Pz ~ age + group, data = alpha_broadpow)
+# Inspect the model diagnostic metrics
+model.metrics <- augment(model) %>%
+  select(-.hat, -.sigma, -.fitted) 
+head(model.metrics, 3)
+```
+
+```{r}
+# Assess normality of residuals (shapiro wilk test)
+shapiro_test(model.metrics$.resid)
+```
+
+
+4. **Homogeneity of variances**
+
+```{r}
+model.metrics %>% levene_test(.resid ~ group)
+```
+
+
+5. **Outliers**
+
+```{r}
+model.metrics %>% 
+  filter(abs(.std.resid) > 3) %>%
+  as.data.frame()
+```
+
+
+## **ANCOVA**
+```{r}
+broadpow_res.aov <- alpha_broadpow %>% anova_test(broadpow_Pz ~ age + group)
+get_anova_table(broadpow_res.aov)
+
+```
+
+
+
+
+# **LOWER ALPHA POWER**
+
+**PARAMETERS BETWEEN GROUPS: TABLE**
+```{r}
+print(alpha1 %>% group_by(group) %>% get_summary_stats(lowerpow_Pz, type = "median_iqr"))
+```
+
+
+**GRAPHS**
+
+```{r}
+bxp_alpha1 <-
+  ggboxplot(
+    alpha1,
+    x = "group",
+    y = "lowerpow_Pz",
+    xlab = "Group",
+    ylab = "Lower alpha power",
+    width = 0.5,
+    fill = "group") + scale_fill_manual(values = c("#FFCC33", "#CCFF66", "#FF99CC", "#9966CC")) + theme(legend.position = "none") + font("axis.title", size = 24) + 
+ font("xy.text", size = 18) + scale_x_discrete(labels = c("OC", "IUD", "NCF", "NCL")) + stat_summary(
+    fun.y = mean,
+    geom = "errorbar",
+    aes(
+      ymax = ..y..,
+      ymin = ..y..,
+      group = factor(group)
+    ),
+    width = 0.5,
+    linetype = "dashed",
+    position = position_dodge()
+  )
+
+bxp_alpha1
+
+```
+
+##  **CHECK ASSUMPTIONS**
+
+1. **Linearity assumption**
+
+```{r}
+ggscatter(
+  alpha1, x = "age", y = "lowerpow_Pz",
+  color = "group", add = "reg.line"
+  )+
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = group)
+    )
+```
+
+2. **Homogeneity of regression slopes**
+
+```{r}
+alpha1 %>% anova_test(lowerpow_Pz ~ group*age)
+```
+There was homogeneity of regression slopes as the interaction term was not statistically significant
+
+3. **Normality of residuals**
+```{r}
+# Fit the model
+model <- lm(lowerpow_Pz ~ age + group, data = alpha1)
+# Inspect the model diagnostic metrics
+model.metrics <- augment(model) %>%
+  select(-.hat, -.sigma, -.fitted) 
+head(model.metrics, 3)
+```
+
+```{r}
+# Assess normality of residuals (shapiro wilk test)
+shapiro_test(model.metrics$.resid)
+```
+
+4. **Homogeneity of variances**
+
+```{r}
+model.metrics %>% levene_test(.resid ~ group)
+```
+
+
+5. **Outliers**
+
+```{r}
+model.metrics %>% 
+  filter(abs(.std.resid) > 3) %>%
+  as.data.frame()
+```
+
+
+## **ANCOVA**
+```{r}
+alpha1_res.aov <- alpha1 %>% anova_test(lowerpow_Pz ~ age + group)
+get_anova_table(alpha1_res.aov)
+
+```
+
+
+
+
+# **UPPER ALPHA POWER**
+
+**PARAMETERS BETWEEN GROUPS: TABLE**
+```{r}
+print(alpha2 %>% group_by(group) %>% get_summary_stats(upperpow_Pz, type = "median_iqr"))
+```
+
+
+**GRAPHS**
+
+```{r}
+bxp_alpha2 <-
+  ggboxplot(
+    alpha2,
+    x = "group",
+    y = "upperpow_Pz",
+    xlab = "Group",
+    ylab = "Upper alpha power",
+    width = 0.5,
+    fill = "group") + scale_fill_manual(values = c("#FFCC33", "#CCFF66", "#FF99CC", "#9966CC")) + theme(legend.position = "none") + font("axis.title", size = 24) + 
+ font("xy.text", size = 18) + scale_x_discrete(labels = c("OC", "IUD", "NCF", "NCL")) + stat_summary(
+    fun.y = mean,
+    geom = "errorbar",
+    aes(
+      ymax = ..y..,
+      ymin = ..y..,
+      group = factor(group)
+    ),
+    width = 0.5,
+    linetype = "dashed",
+    position = position_dodge()
+  )
+
+bxp_alpha2
+
+```
+
+##  **CHECK ASSUMPTIONS**
+
+1. **Linearity assumption**
+
+```{r}
+ggscatter(
+  alpha2, x = "age", y = "upperpow_Pz",
+  color = "group", add = "reg.line"
+  )+
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = group)
+    )
+```
+
+2. **Homogeneity of regression slopes**
+
+```{r}
+alpha2 %>% anova_test(upperpow_Pz ~ group*age)
+```
+There was homogeneity of regression slopes as the interaction term was not statistically significant
+
+3. **Normality of residuals**
+```{r}
+# Fit the model
+model <- lm(upperpow_Pz ~ age + group, data = alpha2)
+# Inspect the model diagnostic metrics
+model.metrics <- augment(model) %>%
+  select(-.hat, -.sigma, -.fitted) 
+head(model.metrics, 3)
+```
+
+```{r}
+# Assess normality of residuals (shapiro wilk test)
+shapiro_test(model.metrics$.resid)
+```
+
+
+4. **Homogeneity of variances**
+
+```{r}
+model.metrics %>% levene_test(.resid ~ group)
+```
+
+
+5. **Outliers**
+
+```{r}
+model.metrics %>% 
+  filter(abs(.std.resid) > 3) %>%
+  as.data.frame()
+```
+
+
+## **ANCOVA**
+```{r}
+alpha2_res.aov <- alpha2 %>% anova_test(upperpow_Pz ~ age + group)
+get_anova_table(alpha2_res.aov)
+
+```
+
+
+
+# **LOG ALPHA POWER**
+
+
+**ALPHA BROADPOWER BETWEEN GROUPS: TABLE**
+```{r}
+print(alpha_broadpow %>% group_by(group) %>% get_summary_stats(log_power, type = "median_iqr"))
+```
+
+
+**GRAPHS**
+
+```{r}
+bxp_log_power <-
+  ggboxplot(
+    alpha_broadpow,
+    x = "group",
+    y = "log_power",
+    xlab = "Group",
+    ylab = "Log_power",
+    width = 0.5,
+    fill = "group") + scale_fill_manual(values = c("#FFCC33", "#CCFF66", "#FF99CC", "#9966CC")) + theme(legend.position = "none") + font("axis.title", size = 24) + 
+ font("xy.text", size = 18) + scale_x_discrete(labels = c("OC", "IUD", "NCF", "NCL")) + stat_summary(
+    fun.y = mean,
+    geom = "errorbar",
+    aes(
+      ymax = ..y..,
+      ymin = ..y..,
+      group = factor(group)
+    ),
+    width = 0.5,
+    linetype = "dashed",
+    position = position_dodge()
+  )
+
+bxp_log_power
+
+```
+
+##  **CHECK ASSUMPTIONS**
+
+1. **Linearity assumption**
+
+```{r}
+ggscatter(
+  alpha_broadpow, x = "age", y = "log_power",
+  color = "group", add = "reg.line"
+  )+
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = group)
+    )
+```
+
+2. **Homogeneity of regression slopes**
+
+```{r}
+alpha_broadpow %>% anova_test(log_power ~ group*age)
+```
+
+
+3. **Normality of residuals**
+```{r}
+# Fit the model
+model <- lm(log_power ~ age + group, data = alpha_broadpow)
+# Inspect the model diagnostic metrics
+model.metrics <- augment(model) %>%
+  select(-.hat, -.sigma, -.fitted) 
+head(model.metrics, 3)
+```
+
+
+```{r}
+# Assess normality of residuals (shapiro wilk test)
+shapiro_test(model.metrics$.resid)
+```
+
+
+4. **Homogeneity of variances**
+
+```{r}
+model.metrics %>% levene_test(.resid ~ group)
+```
+
+
+5. **Outliers**
+
+```{r}
+model.metrics %>% 
+  filter(abs(.std.resid) > 3) %>%
+  as.data.frame()
+```
+
+
+## **ANCOVA**
+```{r}
+log_pow_res.aov <- alpha_broadpow %>% anova_test(log_power ~ age + group)
+get_anova_table(log_pow_res.aov)
+
+```
+
+
+
+
+# **LOG LOWER ALPHA POWER**
+
+
+**LOG LOWER ALPHA BETWEEN GROUPS: TABLE**
+```{r}
+print(alpha1 %>% group_by(group) %>% get_summary_stats(log_lowerpow, type = "median_iqr"))
+```
+
+
+**GRAPHS**
+
+```{r}
+bxp_log_alpha1 <-
+  ggboxplot(
+    alpha1,
+    x = "group",
+    y = "log_lowerpow",
+    xlab = "Group",
+    ylab = "log(alpha1 power)",
+    width = 0.5,
+    fill = "group") + scale_fill_manual(values = c("#FFCC33", "#CCFF66", "#FF99CC", "#9966CC")) + theme(legend.position = "none") + font("axis.title", size = 24) + 
+ font("xy.text", size = 18) + scale_x_discrete(labels = c("OC", "IUD", "NCF", "NCL")) + stat_summary(
+    fun.y = mean,
+    geom = "errorbar",
+    aes(
+      ymax = ..y..,
+      ymin = ..y..,
+      group = factor(group)
+    ),
+    width = 0.5,
+    linetype = "dashed",
+    position = position_dodge()
+  )
+
+bxp_log_alpha1
+
+```
+
+##  **CHECK ASSUMPTIONS**
+
+1. **Linearity assumption**
+
+```{r}
+ggscatter(
+  alpha1, x = "age", y = "log_lowerpow",
+  color = "group", add = "reg.line"
+  )+
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = group)
+    )
+```
+
+2. **Homogeneity of regression slopes**
+
+```{r}
+alpha1 %>% anova_test(log_lowerpow ~ group*age)
+```
+
+
+3. **Normality of residuals**
+```{r}
+# Fit the model
+model <- lm(log_lowerpow ~ age + group, data = alpha1)
+# Inspect the model diagnostic metrics
+model.metrics <- augment(model) %>%
+  select(-.hat, -.sigma, -.fitted) 
+head(model.metrics, 3)
+```
+
+```{r}
+# Assess normality of residuals using shapiro wilk test
+shapiro_test(model.metrics$.resid)
+```
+
+
+4. **Homogeneity of variances**
+
+```{r}
+model.metrics %>% levene_test(.resid ~ group)
+```
+
+
+5. **Outliers**
+
+```{r}
+model.metrics %>% 
+  filter(abs(.std.resid) > 3) %>%
+  as.data.frame()
+```
+
+
+## **ANCOVA**
+```{r}
+log_alpha1_res.aov <- alpha1 %>% anova_test(log_lowerpow ~ age + group)
+get_anova_table(log_alpha1_res.aov)
+```
+group effect was not significant
+
+
+
+
+
+
+# **LOG UPPER ALPHA POWER**
+
+
+**UPPER ALPHA POWER BETWEEN GROUPS: TABLE**
+```{r}
+print(alpha2 %>% group_by(group) %>% get_summary_stats(log_upperpow, type = "median_iqr"))
+```
+
+
+**GRAPHS**
+
+```{r}
+bxp_log_upperpow <-
+  ggboxplot(
+    alpha2,
+    x = "group",
+    y = "log_upperpow",
+    xlab = "Group",
+    ylab = "log(alpha2 power)",
+    width = 0.5,
+    fill = "group") + scale_fill_manual(values = c("#FFCC33", "#CCFF66", "#FF99CC", "#9966CC")) + theme(legend.position = "none") + font("axis.title", size = 24) + 
+ font("xy.text", size = 18) + scale_x_discrete(labels = c("OC", "IUD", "NCF", "NCL")) + stat_summary(
+    fun.y = mean,
+    geom = "errorbar",
+    aes(
+      ymax = ..y..,
+      ymin = ..y..,
+      group = factor(group)
+    ),
+    width = 0.5,
+    linetype = "dashed",
+    position = position_dodge()
+  )
+
+bxp_log_upperpow
+
+```
+
+##  **CHECK ASSUMPTIONS**
+
+1. **Linearity assumption**
+
+```{r}
+ggscatter(
+  alpha2, x = "age", y = "log_upperpow",
+  color = "group", add = "reg.line"
+  )+
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = group)
+    )
+```
+
+2. **Homogeneity of regression slopes**
+
+```{r}
+alpha2 %>% anova_test(log_upperpow ~ group*age)
+```
+
+
+3. **Normality of residuals**
+```{r}
+# Fit the model
+model <- lm(log_upperpow ~ age + group, data = alpha2)
+# Inspect the model diagnostic metrics
+model.metrics <- augment(model) %>%
+  select(-.hat, -.sigma, -.fitted)
+head(model.metrics, 3)
+```
+
+```{r}
+# Assess normality of residuals (shapiro wilk test)
+shapiro_test(model.metrics$.resid)
+```
+
+
+4. **Homogeneity of variances**
+
+```{r}
+model.metrics %>% levene_test(.resid ~ group)
+```
+
+
+5. **Outliers**
+
+```{r}
+model.metrics %>% 
+  filter(abs(.std.resid) > 3) %>%
+  as.data.frame()
+```
+
+
+## **ANCOVA**
+```{r}
+log_alpha2_res.aov <- alpha2 %>% anova_test(log_upperpow ~ age + group)
+get_anova_table(log_alpha2_res.aov)
+
+```
+
+
+
+
+# **PEAK WITH**
+
+
+**PEAK WITH BETWEEN GROUPS: TABLE**
+```{r}
+print(width %>% group_by(group) %>% get_summary_stats(width_Pz, type = "median_iqr"))
+```
+```{r}
+print(width %>% group_by(group) %>% get_summary_stats(width_Pz, type = "mean_sd"))
+```
+
+**GRAPHS**
+
+```{r}
+bxp_width_pz <-
+  ggboxplot(
+    width,
+    x = "group",
+    y = "width_Pz",
+    xlab = "Group",
+    ylab = "Peak width (Hz)",
+    width = 0.5,
+    fill = "group") + scale_fill_manual(values = c("#FFCC33", "#CCFF66", "#FF99CC", "#9966CC")) + theme(legend.position = "none") + font("axis.title", size = 24) + 
+ font("xy.text", size = 18) + scale_x_discrete(labels = c("OC", "IUD", "NCF", "NCL")) + stat_summary(
+    fun.y = mean,
+    geom = "errorbar",
+    aes(
+      ymax = ..y..,
+      ymin = ..y..,
+      group = factor(group)
+    ),
+    width = 0.5,
+    linetype = "dashed",
+    position = position_dodge()
+  )
+
+bxp_width_pz
+
+```
+
+##  **CHECK ASSUMPTIONS**
+
+1. **Linearity assumption**
+
+```{r}
+ggscatter(
+  width, x = "age", y = "width_Pz",
+  color = "group", add = "reg.line"
+  )+
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = group)
+    )
+```
+
+2. **Homogeneity of regression slopes**
+
+```{r}
+width %>% anova_test(width_Pz ~ group*age)
+```
+
+
+3. **Normality of residuals**
+```{r}
+# Fit the model
+model <- lm(width_Pz ~ age + group, data = width)
+# Inspect the model diagnostic metrics
+model.metrics <- augment(model) %>%
+  select(-.hat, -.sigma, -.fitted) 
+head(model.metrics, 3)
+```
+
+```{r}
+# Assess normality of residuals (shapiro wilk test)
+shapiro_test(model.metrics$.resid)
+```
+
+
+4. **Homogeneity of variances**
+
+```{r}
+model.metrics %>% levene_test(.resid ~ group)
+```
+
+5. **Outliers**
+
+```{r}
+model.metrics %>% 
+  filter(abs(.std.resid) > 3) %>%
+  as.data.frame()
+```
+
+
+## **ANCOVA**
+```{r}
+width_res.aov <- width %>% anova_test(width_Pz ~ age + group)
+get_anova_table(width_res.aov)
+
+```

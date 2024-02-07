@@ -1,0 +1,274 @@
+---
+title: "As Bazanova: correlations with hormones (groups)"
+format: html
+editor: visual
+---
+
+Loading packages
+
+```{r}
+#| message: false
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+library(broom)
+library(readxl)
+library(corrr)
+library(corrplot)
+library(PerformanceAnalytics)
+library(knitr)
+library(openxlsx)
+```
+
+**Uploading data**
+
+```{r}
+
+# Add paths to the corresponding data
+
+iaf <-
+  read_xlsx("")
+
+alpha_power <-
+  read_xlsx("")
+
+alpha1 <-
+  read_xlsx("")
+
+alpha2 <-
+  read_xlsx("")
+
+width <-
+  read_xlsx("")
+
+demographic <- read_xlsx("")
+```
+
+**Removing subjects**
+
+```{r}
+# Remove subjects' data
+
+# List of IDs to remove
+ids_to_remove <- c(236, 32, 107, 113, 221, 13, 118, 122)
+
+# Remove male group
+iaf <- iaf[!(iaf$id %in% ids_to_remove) & !(iaf$group == "M"), ]
+alpha_power <- alpha_power[!(alpha_power$id %in% ids_to_remove) & !(alpha_power$group == "M"), ]
+alpha1 <- alpha1[!(alpha1$id %in% ids_to_remove) & !(alpha1$group == "M"), ]
+alpha2 <- alpha2[!(alpha2$id %in% ids_to_remove) & !(alpha2$group == "M"), ]
+width <- width[!(width$id %in% ids_to_remove) & !(width$group == "M"), ]
+
+# Check if all datasets have equal number of rows
+num_rows <- nrow(iaf)
+if ( nrow(alpha_power) != num_rows || nrow(alpha1) != num_rows || nrow(alpha2) != num_rows || nrow(width) != num_rows) {
+  print("Warning: Datasets do not have an equal number of rows.")
+}
+
+
+```
+
+**Merge data sets**
+
+```{r}
+
+Joint_df <- demographic |>  
+  inner_join(iaf, by = c("id" = "id")) |> 
+  inner_join(alpha_power, by = c("id" = "id", "group" = "group")) |> 
+  inner_join(alpha1, by = c("id" = "id", "group" = "group")) |> 
+  inner_join(alpha2, by = c("id" = "id", "group" = "group")) |>
+  inner_join(width, by = c("id" = "id", "group" = "group")) |>
+  relocate(group, .before = age) |> 
+  mutate(log_power         = log(broadpow_Pz),
+         log_alpha1         = log(lowerpow_Pz),
+         log_alpha2         = log(upperpow_Pz),
+          log_progesterone = log(Progesterone)
+  )|>
+  relocate(log_power, .before = broadpow_Pz) |>
+  relocate(log_progesterone, .before = Progesterone) |>
+  relocate(log_alpha1, .before = lowerpow_Pz) |>
+  relocate(log_alpha2, .before = upperpow_Pz)
+```
+
+## Correlations
+
+### All groups
+
+```{r}
+corr_data <- Joint_df |> 
+  select(!id & !group & !age & !BMI & !broadpow_Pz & !lowerpow_Pz & !upperpow_Pz & !Progesterone) 
+
+
+corr_data
+```
+
+```{r}
+All_matrix <- cor(corr_data,method = "pearson", use = "pairwise.complete.obs")
+All_p_values <- cor.mtest(corr_data, method = "pearson",  use = "pairwise.complete.obs", exact = FALSE)$p
+
+# Combine r values and p values into a single data frame
+All_results <- data.frame(R = All_matrix, P = All_p_values)
+
+# print dataframe
+# kable(All_results, caption = "Correlation Coefficients (r) and P Values (p)", format = "markdown")
+```
+
+```{r}
+corrplot(All_matrix, method = "number", type = "upper")
+```
+
+```{r}
+#| warning: false
+chart.Correlation(corr_data, histogram=TRUE, pch=19)
+```
+
+#### Subseting NCF
+
+```{r}
+NCF_all <- Joint_df |> 
+  filter(group == "NCF") |> 
+  select(!id & !group & !age & !BMI & !broadpow_Pz & !lowerpow_Pz & !upperpow_Pz & !Progesterone) 
+```
+
+Correlation matrix
+
+```{r}
+NCF_matrix <- cor(NCF_all,method = "pearson", use = "pairwise.complete.obs")
+NCF_p_values <- cor.mtest(NCF_all, method = "pearson",  use = "pairwise.complete.obs", exact = FALSE)$p
+
+# Combine r values and p values into a single data frame
+NCF_results <- data.frame(R = NCF_matrix, P = NCF_p_values)
+
+# print dataframe
+# kable(NCF_results, caption = "Correlation Coefficients (r) and P Values (p)", format = "markdown")
+```
+
+Graphic
+
+```{r}
+corrplot(NCF_matrix, method = "number", type = "upper")
+```
+
+```{r}
+#| warning: false
+chart.Correlation(NCF_all, histogram=TRUE, pch=19)
+
+```
+
+#### subset NCL
+
+```{r}
+NCL_all <- Joint_df |> 
+  filter(group == "NCL") |> 
+  select(!id & !group & !age & !BMI & !broadpow_Pz & !lowerpow_Pz & !upperpow_Pz & !Progesterone) 
+```
+
+```{r}
+NCL_matrix <- cor(NCL_all,method = "pearson", use = "pairwise.complete.obs")
+NCL_p_values <- cor.mtest(NCL_all, method = "pearson",  use = "pairwise.complete.obs", exact = FALSE)$p
+# Combine r values and p values into a single data frame
+NCL_results <- data.frame(R = NCL_matrix, P = NCL_p_values)
+
+# print dataframe
+# kable(NCL_results, caption = "Correlation Coefficients (r) and P Values (p)", format = "markdown")
+```
+
+Graphics:
+
+```{r}
+corrplot(NCL_matrix, method = "number", type = "upper")
+```
+
+```{r}
+#| warning: false
+library(PerformanceAnalytics)
+chart.Correlation(NCL_all, histogram=TRUE, pch=19)
+```
+
+#### subset OC
+
+```{r}
+OC_all <- Joint_df |> 
+  filter(group == "OC") |> 
+  select(!id & !group & !age & !BMI & !broadpow_Pz & !lowerpow_Pz & !upperpow_Pz & !Progesterone) 
+```
+
+```{r}
+OC_matrix <- cor(OC_all,method = "pearson", use = "pairwise.complete.obs")
+OC_p_values <- cor.mtest(OC_all, method = "pearson",  use = "pairwise.complete.obs", exact = FALSE)$p
+
+# Combine r values and p values into a single data frame
+OC_results <- data.frame(R = OC_matrix, P = OC_p_values)
+
+# print dataframe
+# kable(OC_results, caption = "Correlation Coefficients (r) and P Values (p)", format = "markdown")
+
+```
+
+Graphics
+
+```{r}
+corrplot(OC_matrix, method = "number", type = "upper")
+```
+
+```{r}
+#| warning: false
+chart.Correlation(OC_all, histogram=TRUE, pch=19)
+```
+
+#### subset IUD
+
+```{r}
+IUD_all <- Joint_df |> 
+  filter(group == "IUD") |> 
+  select(!id & !group & !age & !BMI & !broadpow_Pz & !lowerpow_Pz & !upperpow_Pz & !Progesterone) 
+```
+
+```{r}
+IUD_matrix <- cor(IUD_all,method = "pearson", use = "pairwise.complete.obs")
+IUD_p_values <- cor.mtest(IUD_all, method = "pearson",  use = "pairwise.complete.obs", exact = FALSE)$p
+
+# Combine r values and p values into a single data frame
+IUD_results <- data.frame(R = IUD_matrix, P = IUD_p_values)
+
+# print dataframe
+# kable(IUD_results, caption = "Correlation Coefficients (r) and P Values (p)", format = "markdown")
+```
+
+Graphics
+
+```{r}
+corrplot(IUD_matrix, method = "number", type = "upper")
+```
+
+```{r}
+#| warning: false
+chart.Correlation(IUD_all, histogram=TRUE, pch=19)
+```
+
+```{r}
+
+# save to excel
+
+# file_path <- "/Users/linagladutyte/Documents/LABES/RAMYBE/FOOF/as_Bazanova/corr_with_hormones.xlsx"
+
+# wb <- createWorkbook()
+
+# addWorksheet(wb, sheetName = "All")
+# writeData(wb, sheet = "All", All_results, rowNames=TRUE)
+
+# addWorksheet(wb, sheetName = "OC")
+# writeData(wb, sheet = "OC", OC_results, rowNames=TRUE)
+
+# addWorksheet(wb, sheetName = "IUD")
+# writeData(wb, sheet = "IUD", IUD_results, rowNames=TRUE)
+
+# addWorksheet(wb, sheetName = "NCF")
+# writeData(wb, sheet = "NCF", NCF_results, rowNames=TRUE)
+
+# addWorksheet(wb, sheetName = "NCL")
+# writeData(wb, sheet = "NCL", NCL_results, rowNames=TRUE)
+
+# saveWorkbook(wb, file_path)
+
+```
