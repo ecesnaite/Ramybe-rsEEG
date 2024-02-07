@@ -1,4 +1,4 @@
-function varargout = plot_spec(X,Fs,F_max,varargin)
+function varargout = plot_spec_adj(X,Fs,F_max,varargin)
 freqmark = [];
 
 if (rem(length(varargin),2) == 1)
