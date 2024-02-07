@@ -1,0 +1,505 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+library(broom)
+library(readxl)
+```
+
+
+One-way ANCOVA with age as covariate
+https://www.datanovia.com/en/lessons/ancova-in-r/
+
+
+
+```{r}
+#Load data
+
+slope <-
+  read_xlsx("/Users/linagladutyte/Documents/LABES/RAMYBE/FOOF/rsq_slope_offset/slope_off_ch_groups.xlsx", sheet = "id_group_median_slope")
+
+offset <-
+  read_xlsx("/Users/linagladutyte/Documents/LABES/RAMYBE/FOOF/rsq_slope_offset/slope_off_ch_groups.xlsx", sheet = "id_group_median_offset")
+
+iaf <-read_xlsx("/Users/linagladutyte/Documents/LABES/RAMYBE/FOOF/alpha_parameters/iaf_power_ch_groups.xlsx", sheet = "id_group_median_iaf" )
+
+power <-read_xlsx("/Users/linagladutyte/Documents/LABES/RAMYBE/FOOF/alpha_parameters/iaf_power_ch_groups.xlsx", sheet = "id_group_median_power" )
+
+age <-read_xlsx("/Users/linagladutyte/Documents/LABES/RAMYBE/FOOF/stats/id_age.xlsx")
+```
+
+
+```{r}
+#add age 
+# Merge 'slope' dataframe with 'age' based on 'id'
+slope <- merge(slope, age, by = "id", all.x = TRUE)
+
+offset <- merge(offset, age, by = "id", all.x = TRUE)
+
+iaf <- merge(iaf, age, by = "id", all.x = TRUE)
+
+power <- merge(power, age, by = "id", all.x = TRUE)
+
+```
+
+**REMOVED SUBJECTS:**
+
+
+NCF_236, OC_32.set, UID_107.set, UID_113.set
+
+Subjects with more than 31 NaN values:
+Subject ID: 221, NaN count: 39
+Subject ID: 13, NaN count: 58
+Subject ID: 118, NaN count: 52
+Subject ID: 122, NaN count: 62
+
+
+```{r}
+#remove subjects
+
+# List of IDs to remove
+ids_to_remove <- c(236, 32, 107, 113, 221, 13, 118, 122)
+
+# Remove rows for the specified IDs in each dataset
+slope <- slope[!(slope$id %in% ids_to_remove) & !(slope$group == "M"), ]
+offset <- offset[!(offset$id %in% ids_to_remove) & !(offset$group == "M"), ]
+iaf <- iaf[!(iaf$id %in% ids_to_remove) & !(iaf$group == "M"), ]
+power <- power[!(power$id %in% ids_to_remove) & !(power$group == "M"), ]
+
+# Check if all datasets have equal number of rows
+num_rows <- nrow(slope)
+if (nrow(offset) != num_rows || nrow(iaf) != num_rows || nrow(power) != num_rows) {
+  print("Warning: Datasets do not have an equal number of rows.")
+}
+
+```
+
+
+
+```{r}
+# Define the desired order of levels
+desired_order <- c("OC", "IUD", "NCF", "NCL")
+
+# Function to convert group names to factors and reorder levels
+convert_and_reorder <- function(df) {
+  df$group <- factor(df$group, levels = desired_order)
+  return(df)
+}
+
+# Apply the conversion and reordering to all datasets
+slope <- convert_and_reorder(slope)
+offset <- convert_and_reorder(offset)
+iaf <- convert_and_reorder(iaf)
+power <- convert_and_reorder(power)
+```
+
+
+# **SLOPE**
+
+**PARAMETERS BETWEEN GROUPS: TABLE**
+```{r}
+print(slope %>% group_by(group) %>% get_summary_stats(median_slope, type = "median_iqr"))
+```
+
+
+**GRAPHS**
+dashed line - mean
+```{r}
+bxp_slope <-
+  ggboxplot(
+    slope,
+    x = "group",
+    y = "median_slope",
+    xlab = "Group",
+    ylab = "Slope",
+    width = 0.5,
+    fill = "group") + scale_fill_manual(values = c("#FFCC33", "#CCFF66", "#FF99CC", "#9966CC")) + theme(legend.position = "none") + font("axis.title", size = 24) + 
+ font("xy.text", size = 18) + scale_x_discrete(labels = c("OC", "IUD", "NCF", "NCL")) + stat_summary(
+    fun.y = mean,
+    geom = "errorbar",
+    aes(
+      ymax = ..y..,
+      ymin = ..y..,
+      group = factor(group)
+    ),
+    width = 0.5,
+    linetype = "dashed",
+    position = position_dodge()
+  )
+
+bxp_slope
+
+```
+
+##  **CHECK ASSUMPTIONS**
+
+
+
+1. **Linearity assumption**
+
+```{r}
+ggscatter(
+  slope, x = "age", y = "median_slope",
+  color = "group", add = "reg.line"
+  )+
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = group)
+    )
+```
+
+2. **Homogeneity of regression slopes**
+
+```{r}
+slope %>% anova_test(median_slope ~ group*age)
+```
+There was homogeneity of regression slopes as the interaction term was not statistically significant
+
+3. **Normality of residuals**
+```{r}
+# Fit the model, the covariate goes first
+model <- lm(median_slope ~ age + group, data = slope)
+# Inspect the model diagnostic metrics
+model.metrics <- augment(model) %>%
+  select(-.hat, -.sigma, -.fitted) # Remove details
+head(model.metrics, 3)
+```
+
+```{r}
+# Assess normality of residuals using shapiro wilk test
+shapiro_test(model.metrics$.resid)
+```
+The Shapiro Wilk test was not significant (p > 0.05), so we can assume normality of residuals
+
+4. **Homogeneity of variances**
+
+```{r}
+model.metrics %>% levene_test(.resid ~ group)
+```
+The Levene’s test was not significant (p > 0.05), so we can assume homogeneity of the residual variances for all groups.
+
+5. **Outliers**
+
+```{r}
+model.metrics %>% 
+  filter(abs(.std.resid) > 3) %>%
+  as.data.frame()
+```
+There were no outliers in the data, as assessed by no cases with standardized residuals greater than 3 in absolute value.
+
+## **ANCOVA**
+```{r}
+res.aov <- slope %>% anova_test(median_slope ~ age + group)
+get_anova_table(res.aov)
+
+```
+NO significant difference between groups
+
+
+# **OFFSET**
+
+**PARAMETERS BETWEEN GROUPS: TABLE**
+```{r}
+print(offset %>% group_by(group) %>% get_summary_stats(median_offset, type = "median_iqr"))
+```
+
+
+**GRAPHS**
+
+```{r}
+bxp_offset <-
+  ggboxplot(
+    offset,
+    x = "group",
+    y = "median_offset",
+    xlab = "Group",
+    ylab = "Offset",
+    width = 0.5,
+    fill = "group") + scale_fill_manual(values = c("#FFCC33", "#CCFF66", "#FF99CC", "#9966CC")) + theme(legend.position = "none") + font("axis.title", size = 24) + 
+ font("xy.text", size = 18) + scale_x_discrete(labels = c("OC", "IUD", "NCF", "NCL")) + stat_summary(
+    fun.y = mean,
+    geom = "errorbar",
+    aes(
+      ymax = ..y..,
+      ymin = ..y..,
+      group = factor(group)
+    ),
+    width = 0.5,
+    linetype = "dashed",
+    position = position_dodge()
+  )
+
+bxp_offset
+
+```
+
+##  **CHECK ASSUMPTIONS**
+
+1. **Linearity assumption**
+
+```{r}
+ggscatter(
+  offset, x = "age", y = "median_offset",
+  color = "group", add = "reg.line"
+  )+
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = group)
+    )
+```
+
+2. **Homogeneity of regression slopes**
+
+```{r}
+offset %>% anova_test(median_offset ~ group*age)
+```
+There was homogeneity of regression slopes as the interaction term was not statistically significant
+
+3. **Normality of residuals**
+```{r}
+# Fit the model, the covariate goes first
+model <- lm(median_offset ~ age + group, data = offset)
+# Inspect the model diagnostic metrics
+model.metrics <- augment(model) %>%
+  select(-.hat, -.sigma, -.fitted) # Remove details
+head(model.metrics, 3)
+```
+
+```{r}
+# Assess normality of residuals using shapiro wilk test
+shapiro_test(model.metrics$.resid)
+```
+The Shapiro Wilk test was not significant (p > 0.05), so we can assume normality of residuals
+
+4. **Homogeneity of variances**
+
+```{r}
+model.metrics %>% levene_test(.resid ~ group)
+```
+The Levene’s test was not significant (p > 0.05), so we can assume homogeneity of the residual variances for all groups.
+
+5. **Outliers**
+
+```{r}
+model.metrics %>% 
+  filter(abs(.std.resid) > 3) %>%
+  as.data.frame()
+```
+There were no outliers in the data, as assessed by no cases with standardized residuals greater than 3 in absolute value.
+
+## **ANCOVA**
+```{r}
+offset_res.aov <- offset %>% anova_test(median_offset ~ age + group)
+get_anova_table(offset_res.aov)
+
+```
+NO significant difference between groups
+
+
+
+
+# **IAF**
+
+**PARAMETERS BETWEEN GROUPS: TABLE**
+```{r}
+print(iaf %>% group_by(group) %>% get_summary_stats(median_iaf, type = "median_iqr"))
+```
+
+
+**GRAPHS**
+
+```{r}
+bxp_iaf <-
+  ggboxplot(
+    iaf,
+    x = "group",
+    y = "median_iaf",
+    xlab = "Group",
+    ylab = "IAF",
+    width = 0.5,
+    fill = "group") + scale_fill_manual(values = c("#FFCC33", "#CCFF66", "#FF99CC", "#9966CC")) + theme(legend.position = "none") + font("axis.title", size = 24) + 
+ font("xy.text", size = 18) + scale_x_discrete(labels = c("OC", "IUD", "NCF", "NCL")) + stat_summary(
+    fun.y = mean,
+    geom = "errorbar",
+    aes(
+      ymax = ..y..,
+      ymin = ..y..,
+      group = factor(group)
+    ),
+    width = 0.5,
+    linetype = "dashed",
+    position = position_dodge()
+  )
+
+bxp_iaf
+
+```
+
+##  **CHECK ASSUMPTIONS**
+
+1. **Linearity assumption**
+
+```{r}
+ggscatter(
+  iaf, x = "age", y = "median_iaf",
+  color = "group", add = "reg.line"
+  )+
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = group)
+    )
+```
+
+2. **Homogeneity of regression slopes**
+
+```{r}
+iaf %>% anova_test(median_iaf ~ group*age)
+```
+There was homogeneity of regression slopes as the interaction term was not statistically significant
+
+3. **Normality of residuals**
+```{r}
+# Fit the model, the covariate goes first
+model <- lm(median_iaf ~ age + group, data = iaf)
+# Inspect the model diagnostic metrics
+model.metrics <- augment(model) %>%
+  select(-.hat, -.sigma, -.fitted) # Remove details
+head(model.metrics, 3)
+```
+
+```{r}
+# Assess normality of residuals using shapiro wilk test
+shapiro_test(model.metrics$.resid)
+```
+The Shapiro Wilk test was significant (p < 0.05), so we can NOT assume normality of residuals
+
+4. **Homogeneity of variances**
+
+```{r}
+model.metrics %>% levene_test(.resid ~ group)
+```
+The Levene’s test was not significant (p > 0.05), so we can assume homogeneity of the residual variances for all groups.
+
+5. **Outliers**
+
+```{r}
+model.metrics %>% 
+  filter(abs(.std.resid) > 3) %>%
+  as.data.frame()
+```
+There were no outliers in the data, as assessed by no cases with standardized residuals greater than 3 in absolute value.
+
+## **ANCOVA**
+```{r}
+iaf_res.aov <- iaf %>% anova_test(median_iaf ~ age + group)
+get_anova_table(iaf_res.aov)
+
+```
+NO significant difference between groups
+
+
+
+# **POWER**
+
+**PARAMETERS BETWEEN GROUPS: TABLE**
+```{r}
+print(power %>% group_by(group) %>% get_summary_stats(median_power, type = "median_iqr"))
+```
+
+
+**GRAPHS**
+
+```{r}
+bxp_power <-
+  ggboxplot(
+    power,
+    x = "group",
+    y = "median_power",
+    xlab = "Group",
+    ylab = "Power",
+    width = 0.5,
+    fill = "group") + scale_fill_manual(values = c("#FFCC33", "#CCFF66", "#FF99CC", "#9966CC")) + theme(legend.position = "none") + font("axis.title", size = 24) + 
+ font("xy.text", size = 18) + scale_x_discrete(labels = c("OC", "IUD", "NCF", "NCL")) + stat_summary(
+    fun.y = mean,
+    geom = "errorbar",
+    aes(
+      ymax = ..y..,
+      ymin = ..y..,
+      group = factor(group)
+    ),
+    width = 0.5,
+    linetype = "dashed",
+    position = position_dodge()
+  )
+
+bxp_power
+
+```
+
+##  **CHECK ASSUMPTIONS**
+
+1. **Linearity assumption**
+
+```{r}
+ggscatter(
+  power, x = "age", y = "median_power",
+  color = "group", add = "reg.line"
+  )+
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = group)
+    )
+```
+
+2. **Homogeneity of regression slopes**
+
+```{r}
+power %>% anova_test(median_power ~ group*age)
+```
+There was homogeneity of regression slopes as the interaction term was not statistically significant
+
+3. **Normality of residuals**
+```{r}
+# Fit the model, the covariate goes first
+model <- lm(median_power ~ age + group, data = power)
+# Inspect the model diagnostic metrics
+model.metrics <- augment(model) %>%
+  select(-.hat, -.sigma, -.fitted) # Remove details
+head(model.metrics, 3)
+```
+
+```{r}
+# Assess normality of residuals using shapiro wilk test
+shapiro_test(model.metrics$.resid)
+```
+The Shapiro Wilk test was significant (p < 0.001), so we can NOT assume normality of residuals
+
+4. **Homogeneity of variances**
+
+```{r}
+model.metrics %>% levene_test(.resid ~ group)
+```
+The Levene’s test was significant (p = 0.05), so we can NOT assume homogeneity of the residual variances for all groups.
+
+5. **Outliers**
+
+```{r}
+model.metrics %>% 
+  filter(abs(.std.resid) > 3) %>%
+  as.data.frame()
+```
+There were  outliers in the data, as assessed by cases with standardized residuals greater than 3 in absolute value.
+
+## **ANCOVA**
+```{r}
+power_res.aov <- power %>% anova_test(median_power ~ age + group)
+get_anova_table(power_res.aov)
+
+```
+NO significant difference between groups
+
+
+
