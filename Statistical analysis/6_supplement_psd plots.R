@@ -1,7 +1,7 @@
 rm(list = ls())
 
 myData <-read.csv("")
-aperiodicData <- read.csv("/Users/ecesnaite/Desktop/BuschLab/Ramybe-rsEEG/analysis/aperiodic_decay_group_plots.csv")
+aperiodicData <- read.csv("")
 
 library(ggplot2)
 library(tidyr)
@@ -22,7 +22,7 @@ mycolors_all <- c("#009E73", "#E69F00", "#CC79A7", "#0072B2",
 
 names(mycolors_all) <- c("NCF", "NCL", "IUD", "OC","ncf","ncg", "uid","oc")
 
-tiff("/Users/ecesnaite/Desktop/BuschLab/Ramybe-rsEEG/figures/psd_all_avg_nc.png", units="in", width=4.5, height=3, res=300)
+tiff("", units="in", width=4.5, height=3, res=300)
 
   ggplot(both_long, aes(x=freq, y= log(value), group=key, linetype = group)) +
   geom_line(aes( color=key), size = 1)+
@@ -101,7 +101,7 @@ my_orange = brewer.pal(n = 9, "OrRd")[3:9] #there are 9, I exluded the two light
 orange_palette = colorRampPalette(c(my_orange[1], my_orange[4], my_orange[6]), space = "Lab")
 my_orange2 = orange_palette(30)
 
-tiff("/Users/ecesnaite/Desktop/BuschLab/Ramybe-rsEEG/figures/psd_uid.png", units="in", width=3.5, height=3, res=300)
+tiff("", units="in", width=3.5, height=3, res=300)
 
 ggplot(t_uid_long, aes(x=freq, y= log(value), group=key)) +
   geom_line(aes(color=key), alpha=0.2) +
@@ -126,7 +126,7 @@ my_purple = brewer.pal(n = 9, "BuPu")[3:9] #there are 9, I exluded the two light
 purple_palette = colorRampPalette(c(my_purple[1], my_purple[4], my_purple[6]), space = "Lab")
 my_purple2 = purple_palette(36)
 
-tiff("/Users/ecesnaite/Desktop/BuschLab/Ramybe-rsEEG/figures/psd_oc.png", units="in", width=3.5, height=3, res=300)
+tiff("", units="in", width=3.5, height=3, res=300)
 
 ggplot(t_oc_long, aes(x=freq, y= log(value), group=key)) +
   geom_line(aes(color=key), alpha=0.2) +
