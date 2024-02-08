@@ -62,17 +62,16 @@ if (nrow(iaf) != num_rows || nrow(power) != num_rows) {
 
 ```{r}
 slope <- slope |> rowwise() |> 
-  mutate(Occ_pariet = mean(c_across(Pz:O2), na.rm = TRUE))
+  mutate(Occ_pariet = mean((Pz,P2,POz, PO4), na.rm = TRUE))
 
 iaf <- iaf |> rowwise() |> 
-  mutate(Occ_pariet = mean(c_across(Pz:O2), na.rm = TRUE))
+  mutate(Occ_pariet = mean(c_across(Pz,P2,POz, PO4), na.rm = TRUE))
 
 power <- power |> rowwise() |> 
   mutate(Occ_pariet = mean(c_across(Pz:O2), na.rm = TRUE))
 ```
 
-
-#### Combing demographic data 
+#### Combing demographic data
 
 ```{r}
 slope <- merge(slope, demographic, by = "id", all.x = TRUE)
@@ -87,7 +86,6 @@ slope <- slope |> mutate(group = factor(group, levels = c("NCF", "NCL", "OC", "I
 iaf <- iaf|> mutate(group = factor(group, levels = c("NCF", "NCL", "OC", "IUD")))
 power <- power |>  mutate(group = factor(group, levels = c("NCF", "NCL", "OC", "IUD")))
 ```
-
 
 ## Data analysis
 
@@ -155,7 +153,7 @@ slope |> levene_test(Occ_pariet ~ group)
 
 Variance is equall in the groups.
 
-###  2. Running ANOVA
+### 2. Running ANOVA
 
 ```{r}
 slope_aov <- slope |> anova_test(Occ_pariet ~ group + age)
@@ -183,7 +181,9 @@ slopeOcc_pr
 ```
 
 ### IAF
+
 ### 1. Assumption testing
+
 **a. Quick visualization and outlines detection**
 
 ```{r}
@@ -234,6 +234,7 @@ plot(model_iaf,2)
 ```{r}
 shapiro_test(residuals(model_iaf))
 ```
+
 ```{r}
 iaf |> 
   group_by(group) |> 
@@ -250,7 +251,7 @@ iaf |> levene_test(Occ_pariet ~ group)
 
 Variance is equall in the groups.
 
-###  2. Running ANOVA
+### 2. Running ANOVA
 
 ```{r}
 iaf_aov <- iaf |> anova_test(Occ_pariet ~ group)
@@ -334,16 +335,16 @@ plot(model_power,2)
 ```{r}
 shapiro_test(residuals(model_power))
 ```
+
 ```{r}
 power |> 
   group_by(group) |> 
   shapiro_test(power_log)
 ```
+
 ```{r}
 
 ```
-
-
 
 The data is normally distributed
 
@@ -355,7 +356,7 @@ power |> levene_test(power_log ~ group)
 
 Variance is equall in the groups.
 
-###  2. Running ANOVA
+### 2. Running ANOVA
 
 ```{r}
 power_aov <- power |> anova_test(power_log ~ group + age)
@@ -380,11 +381,9 @@ power_graphic
 
 ```
 
-
 ```{r}
 library(patchwork)
 ```
-
 
 ```{r}
 graphics <- slopeOcc_pr /
@@ -395,4 +394,3 @@ power_graphic
 ```{r}
 ggsave("graphics.png", width = 6, height = 8)
 ```
-

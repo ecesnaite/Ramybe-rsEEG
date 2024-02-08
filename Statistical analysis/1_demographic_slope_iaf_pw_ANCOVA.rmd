@@ -50,16 +50,6 @@ power <- merge(power, demographic, by = "id", all.x = TRUE)
 
 **REMOVED SUBJECTS:**
 
-
-NCF_236, OC_32.set, UID_107.set, UID_113.set
-
-Subjects with more than 31 NaN values:
-Subject ID: 221, NaN count: 39
-Subject ID: 13, NaN count: 58
-Subject ID: 118, NaN count: 52
-Subject ID: 122, NaN count: 62
-
-
 ```{r}
 #remove subjects
 
@@ -220,7 +210,7 @@ ggscatter(
 ```{r}
 slope %>% anova_test(median_slope ~ group*age)
 ```
-There was homogeneity of regression slopes as the interaction term was not statistically significant
+
 
 3. **Normality of residuals**
 ```{r}
@@ -236,14 +226,14 @@ head(model.metrics, 3)
 # Assess normality of residuals using shapiro wilk test
 shapiro_test(model.metrics$.resid)
 ```
-The Shapiro Wilk test was not significant (p > 0.05), so we can assume normality of residuals
+
 
 4. **Homogeneity of variances**
 
 ```{r}
 model.metrics %>% levene_test(.resid ~ group)
 ```
-The Levene’s test was not significant (p > 0.05), so we can assume homogeneity of the residual variances for all groups.
+
 
 5. **Outliers**
 
@@ -252,7 +242,7 @@ model.metrics %>%
   filter(abs(.std.resid) > 3) %>%
   as.data.frame()
 ```
-There were no outliers in the data, as assessed by no cases with standardized residuals greater than 3 in absolute value.
+
 
 ## **ANCOVA**
 ```{r}
@@ -260,7 +250,7 @@ res.aov <- slope %>% anova_test(median_slope ~ age + group)
 get_anova_table(res.aov)
 
 ```
-NO significant difference between groups
+
 
 
 # **IAF**
@@ -275,7 +265,7 @@ print(iaf %>% group_by(group) %>% get_summary_stats(median_iaf, type = "median_i
 
 
 ```{r}
-  IAF.png <- ggplot(iaf,aes(x = group, y = median_iaf, fill = group)) +
+ggplot(iaf,aes(x = group, y = median_iaf, fill = group)) +
   geom_violin(width = 1) +
   geom_boxplot(width = 0.1, color = "black", alpha = 0.2) +
   geom_jitter(width = 0.2, height = 0, alpha = 0.5, color = "black") +
@@ -285,9 +275,6 @@ print(iaf %>% group_by(group) %>% get_summary_stats(median_iaf, type = "median_i
   theme_classic() +
   theme(axis.text = element_text(size = 14), legend.position = "none") +
   font("axis.title", size = 18)
-IAF.png
-ggsave("IAF.png", IAF.png, width = 5.33,
-height = 3.6)
 ```
 
 
@@ -310,7 +297,6 @@ ggscatter(
 ```{r}
 iaf %>% anova_test(median_iaf ~ group*age)
 ```
-There was homogeneity of regression slopes as the interaction term was not statistically significant
 
 3. **Normality of residuals**
 ```{r}
@@ -326,14 +312,12 @@ head(model.metrics, 3)
 # Assess normality of residuals using shapiro wilk test
 shapiro_test(model.metrics$.resid)
 ```
-The Shapiro Wilk test was significant (p < 0.05), so we can NOT assume normality of residuals
 
 4. **Homogeneity of variances**
 
 ```{r}
 model.metrics %>% levene_test(.resid ~ group)
 ```
-The Levene’s test was not significant (p > 0.05), so we can assume homogeneity of the residual variances for all groups.
 
 5. **Outliers**
 
@@ -342,7 +326,6 @@ model.metrics %>%
   filter(abs(.std.resid) > 3) %>%
   as.data.frame()
 ```
-There were no outliers in the data, as assessed by no cases with standardized residuals greater than 3 in absolute value.
 
 ## **ANCOVA**
 ```{r}
@@ -350,7 +333,6 @@ iaf_res.aov <- iaf %>% anova_test(median_iaf ~ age + group)
 get_anova_table(iaf_res.aov)
 
 ```
-NO significant difference between groups
 
 
 
@@ -371,7 +353,7 @@ print(power %>% group_by(group) %>% get_summary_stats(median_power, type = "medi
 
 
 ```{r}
-  powerLog <- ggplot(power, aes(x = group, y = median_power_log, fill = group)) +
+ggplot(power, aes(x = group, y = median_power_log, fill = group)) +
   geom_violin(width = 1) +
   geom_boxplot(width = 0.1, color = "black", alpha = 0.2) +
   geom_jitter(width = 0.2, height = 0, alpha = 0.5, color = "black") +
@@ -384,7 +366,6 @@ print(power %>% group_by(group) %>% get_summary_stats(median_power, type = "medi
   coord_cartesian(ylim = c(-2.5, 5))  
   powerLog
 
-ggsave("powerLog.png", width = 5.33,height = 3.6)
 
 ```
 
@@ -408,7 +389,6 @@ ggscatter(
 ```{r}
 power %>% anova_test(median_power_log ~ group*age)
 ```
-There was homogeneity of regression slopes as the interaction term was not statistically significant
 
 3. **Normality of residuals**
 ```{r}
@@ -424,14 +404,12 @@ head(model.metrics, 3)
 # Assess normality of residuals using shapiro wilk test
 shapiro_test(model.metrics$.resid)
 ```
-The Shapiro Wilk test was significant (p < 0.001), so we can NOT assume normality of residuals
 
 4. **Homogeneity of variances**
 
 ```{r}
 model.metrics %>% levene_test(.resid ~ group)
 ```
-The Levene’s test was significant (p = 0.05), so we can NOT assume homogeneity of the residual variances for all groups.
 
 5. **Outliers**
 
@@ -440,7 +418,6 @@ model.metrics %>%
   filter(abs(.std.resid) > 3) %>%
   as.data.frame()
 ```
-There were  outliers in the data, as assessed by cases with standardized residuals greater than 3 in absolute value.
 
 ## **ANCOVA**
 ```{r}
@@ -448,5 +425,4 @@ power_res.aov <- power %>% anova_test(median_power_log ~ age + group)
 get_anova_table(power_res.aov)
 
 ```
-NO significant difference between groups
 
