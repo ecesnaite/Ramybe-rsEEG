@@ -62,13 +62,13 @@ if (nrow(iaf) != num_rows || nrow(power) != num_rows) {
 
 ```{r}
 slope <- slope |> rowwise() |> 
-  mutate(Occ_pariet = mean((Pz,P2,POz, PO4), na.rm = TRUE))
+  mutate(Occ_pariet = mean(c_across(Pz:PO4), na.rm = TRUE))
 
 iaf <- iaf |> rowwise() |> 
-  mutate(Occ_pariet = mean(c_across(Pz,P2,POz, PO4), na.rm = TRUE))
+  mutate(Occ_pariet = mean(c_across(Pz:PO4), na.rm = TRUE))
 
 power <- power |> rowwise() |> 
-  mutate(Occ_pariet = mean(c_across(Pz:O2), na.rm = TRUE))
+  mutate(Occ_pariet = mean(c_across(Pz:PO4), na.rm = TRUE))
 ```
 
 #### Combing demographic data
@@ -106,8 +106,6 @@ slope |>
   identify_outliers(Occ_pariet)
 ```
 
-No outliers in variable
-
 **b. Linearity assumption**
 
 ```{r}
@@ -127,8 +125,6 @@ ggscatter(
 slope |>  anova_test(Occ_pariet ~ group*age)
 ```
 
-There is no significant interaction between age and group
-
 **d. Normality testing (residuals)**
 
 ```{r}
@@ -143,15 +139,11 @@ plot(model_slope,2)
 shapiro_test(residuals(model_slope))
 ```
 
-The data is normally distributed
-
 **d. Homogeneity of variance**
 
 ```{r}
 slope |> levene_test(Occ_pariet ~ group)
 ```
-
-Variance is equall in the groups.
 
 ### 2. Running ANOVA
 
@@ -161,24 +153,6 @@ slope_aov <- slope |> anova_test(Occ_pariet ~ group + age)
 slope_aov
 ```
 
-No significant difference between groups
-
-### 3. Vizualization
-
-```{r}
-slopeOcc_pr <- ggplot(slope,aes(x = group, y = Occ_pariet, fill = group)) +
-  geom_violin(width = 1) +
-  geom_boxplot(width = 0.1, color = "black", alpha = 0.2) +
-  geom_jitter(width = 0.2, height = 0, alpha = 0.5, color = "black") +
-  labs(x = " ") +
-  ylab("1/f Slope (γ)") +
-  scale_fill_manual(values = c("#009E73","#E69F00", "#0072B2", "#CC79A7"))+
-  theme_classic() +
-  theme(axis.text = element_text(size = 14), legend.position = "none") +
-  font("axis.title", size = 18)+
-  ylim(c(0.5, 1.8))
-slopeOcc_pr
-```
 
 ### IAF
 
@@ -197,8 +171,6 @@ iaf |>
   identify_outliers(Occ_pariet) |> 
   select(is.extreme)
 ```
-
-No extreme outliers
 
 **b. Linearity assumption**
 
@@ -219,7 +191,7 @@ ggscatter(
 iaf %>% anova_test(Occ_pariet ~ group*age)
 ```
 
-There is no significant interaction between age and group. And no relationship between age and iaf, therefore we can run simpe ANOVA
+There is no significant interaction between age and group. And no relationship between age and iaf, therefore we can run simple ANOVA
 
 **d. Normality testing (residuals)**
 
@@ -241,15 +213,11 @@ iaf |>
   shapiro_test(Occ_pariet)
 ```
 
-The data is normally distributed
-
 **d. Homogeneity of variance**
 
 ```{r}
 iaf |> levene_test(Occ_pariet ~ group)
 ```
-
-Variance is equall in the groups.
 
 ### 2. Running ANOVA
 
@@ -259,23 +227,6 @@ iaf_aov <- iaf |> anova_test(Occ_pariet ~ group)
 iaf_aov
 ```
 
-No significant difference between groups
-
-### 3. Vizualization
-
-```{r}
-iaf_Occ_pr <- ggplot(iaf,aes(x = group, y = Occ_pariet, fill = group)) +
-  geom_violin(width = 1) +
-  geom_boxplot(width = 0.1, color = "black", alpha = 0.2) +
-  geom_jitter(width = 0.2, height = 0, alpha = 0.5, color = "black") +
-  labs(x = " ") +
-  ylab("IAF (Hz)") +
-  scale_fill_manual(values = c("#009E73","#E69F00", "#0072B2", "#CC79A7"))+
-  theme_classic() +
-  theme(axis.text = element_text(size = 14), legend.position = "none") +
-  font("axis.title", size = 18)
-iaf_Occ_pr
-```
 
 ### Alpa Power
 
@@ -299,8 +250,6 @@ power |>
   select(is.extreme)
 ```
 
-No outliers in variable
-
 **b. Linearity assumption**
 
 ```{r}
@@ -317,10 +266,10 @@ ggscatter(
 **c. Homogeneity of regression slopes**
 
 ```{r}
-power %>% anova_test(power_log ~ group*age)
+power |>  anova_test(power_log ~ group*age)
 ```
 
-There is no significant interaction between age and group
+There is no significant interaction between age and group. And no relationship between age and power_log, therefore we can run simple ANOVA
 
 **d. Normality testing (residuals)**
 
@@ -342,19 +291,11 @@ power |>
   shapiro_test(power_log)
 ```
 
-```{r}
-
-```
-
-The data is normally distributed
-
 **d. Homogeneity of variance**
 
 ```{r}
 power |> levene_test(power_log ~ group)
 ```
-
-Variance is equall in the groups.
 
 ### 2. Running ANOVA
 
@@ -364,33 +305,4 @@ power_aov <- power |> anova_test(power_log ~ group + age)
 power_aov
 ```
 
-No significant difference between groups
 
-```{r}
-power_graphic <- ggplot(power, aes(x = group, y = power_log, fill = group)) +
-  geom_violin(width = 1) +
-  geom_boxplot(width = 0.1, color = "black", alpha = 0.2) +
-  geom_jitter(width = 0.2, height = 0, alpha = 0.5, color = "black") +
-  labs(x = "") +
-  ylab("log Alpha Power (µV2)") +
-  scale_fill_manual(values = c("#009E73","#E69F00", "#0072B2", "#CC79A7"))+
-  theme_classic() +
-  theme(axis.text = element_text(size = 14), legend.position = "none") +
-  font("axis.title", size = 18)
-power_graphic 
-
-```
-
-```{r}
-library(patchwork)
-```
-
-```{r}
-graphics <- slopeOcc_pr /
-iaf_Occ_pr / 
-power_graphic
-```
-
-```{r}
-ggsave("graphics.png", width = 6, height = 8)
-```
