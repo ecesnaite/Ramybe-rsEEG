@@ -1,3 +1,6 @@
+% The code was created to save and plot aperiodic component for different
+% groups
+
 clear all, close all
 
 load('alpha_peaks_matchannel_locations_62') % Pz is 24
@@ -5,19 +8,6 @@ load('group_avg_ap_parameters.mat')%1-offset, 2-exponent
 
 groups = {'NCF', 'NCL', 'IUD', 'OC'}
 pz_aperiodic = table()
-
-% for g = 1:length(groups)
-% 
-%     indx_group = ismember(slope.group,groups(g))
-%     pz_slope_group = mean(pz_slope(indx_group))
-%     pz_offset_group = mean(pz_offset(indx_group))
-% 
-%     pz_aperiodic.slope(g) = pz_slope_group
-% %     pz_aperiodic.offset(g) = pz_offset_group
-% % end
-% 
-% pz_aperiodic.group = groups'
-% writetable(pz_aperiodic, 'aperiodic_pz_groups.xlsx')
 
 % re-create line
 ap_line=table()

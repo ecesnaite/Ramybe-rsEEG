@@ -16,8 +16,6 @@ files= dir([dataDir,'_parameters.mat'])
 f_orig = [0:0.25:45]; %original sampling frequency
 fs = [3:0.25:40]; %sampling frequency based on which FOOOF estimates were made between 3 - 40 Hz
 
-
-
 for p = 1:length(psd_all.psd)
     id = psd_all.psd(p).ID;
     original = psd_all.psd(strcmp({psd_all.psd.ID}, id));
@@ -40,8 +38,14 @@ for p = 1:length(psd_all.psd)
             % subtract the slope from the original psd %
             detrend = original.spect(ch,f_orig>=3 & f_orig<=40) - L;
 
-            %find peaks that exceed 0.05 uV
-            [pow,ifreq,width,~,bounds] = findpeaks_adjusted_new_SSRI(detrend,fs,'MinPeakProminence',0.05,'Annotate','extents','WidthReference','halfheight');% min peak for power threshold
+             % Find peaks using the slightly adjusted findpeaks function to
+            % map the width of the peak better. The function can be shared
+            % under request
+            
+            %find peaks that exceed 0.05 uV. We visually inspected PSD with
+            %the smallest detected alpha peak to ensure it's not associated
+            %with noise
+            [pow,ifreq,width,~,bounds] = findpeaks_ramybe(detrend,fs,'MinPeakProminence',0.05,'Annotate','extents','WidthReference','halfheight');% min peak for power threshold
 
             any_alp = (ifreq >= 8 & ifreq <= 13);
             if any(any_alp)
@@ -50,7 +54,7 @@ for p = 1:length(psd_all.psd)
                     freq = ifreq(any_alp);
                     range = bounds(any_alp,:);
 
-                    if diff(range) > 5      %whenever the width of the peak is more than 3Hz, set it to 3
+                    if diff(range) > 5      %whenever the width of the peak is more than 5Hz
                         range = [freq-2.5, freq+2.5];
                     end
 
@@ -80,7 +84,7 @@ for p = 1:length(psd_all.psd)
                     freq = ifreq(any_alp);
                     range = bounds(any_alp,:);
 
-                    if diff(range) > 5      %whenever the width of the peak is more than 3Hz, set it to 3
+                    if diff(range) > 5      %whenever the width of the peak is more than 5Hz, set it to 5
                         range = [freq-2.5, freq+2.5];
                     end
 

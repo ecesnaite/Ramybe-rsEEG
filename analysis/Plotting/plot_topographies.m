@@ -1,11 +1,9 @@
-%load table 4 x 62 where rows are groups (IUD, OC, NCF, NCL) and columns are
-%channels holding info on median per channel per group
+%
 clear all
-addpath C:\Users\ecesnait\Desktop\BUSCHLAB\Hormones\Matlab_scripts\toolboxes\eeglab_current\eeglab2022.0\
 eeglab
 
 load('alpha_peaks_matchannel_locations_62.mat')
-data = readtable('C:\Users\ecesnait\Desktop\BUSCHLAB\Hormones\Data\iaf_power_ch_groups.xlsx','Sheet','power_each_ch_sbj_removed_subj')
+data = readtable('...\iaf_power_ch_groups.xlsx','Sheet','power_each_ch_sbj_removed_subj')
 
 slope=readtable('slope_off_ch_groups.xlsx','Sheet','median_slope_groups')
 OC_slope = table2array(slope(1,2:end))

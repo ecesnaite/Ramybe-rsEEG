@@ -1,3 +1,5 @@
+% The code was created to plot the mean PSD curves for wach group
+
 load('psd_and_freq_for_FOOOF_06072023.mat')
 load('alpha_peaks_matchannel_locations_62.mat')
 

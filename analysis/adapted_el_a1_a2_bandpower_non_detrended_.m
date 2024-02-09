@@ -46,8 +46,10 @@ for p = 1:length(psd_all.psd)
             % Use original PSD data (not detrended)
             psd = original.spect(ch, f_orig >= 3 & f_orig <= 40);
 
-            % Find peaks using the original findpeaks function
-            [pow, ifreq, width, ~, bounds] = findpeaks_adjusted_new_SSRI(psd, fs, 'MinPeakProminence', 0.05, 'Annotate', 'extents', 'WidthReference', 'halfheight');
+            % Find peaks using the slightly adjusted findpeaks function to
+            % map the width of the peak better. The function can be shared
+            % under request
+            [pow, ifreq, width, ~, bounds] = findpeaks_ramybe(psd, fs, 'MinPeakProminence', 0.05, 'Annotate', 'extents', 'WidthReference', 'halfheight');
 
             % Specify lower and upper alpha bounds
             lower_alpha_bound = 7;
@@ -174,9 +176,3 @@ save([saveDir, 'peak_width_mtx'], 'peakwidth');
 ID_all = {psd_all.psd.ID};
 save([saveDir, 'all_IDs'], 'ID_all');
 
-%EEG = pop_loadset('NCF_201.set');
-%chan_label = {EEG.chanlocs.labels};
-%save([saveDir, 'channel_labels_62'], 'chan_label');
-
-%chan_loc = EEG.chanlocs;
-%save([saveDir, 'channel_locations_62'], 'chan_loc');
